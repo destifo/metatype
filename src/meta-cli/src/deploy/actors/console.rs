@@ -4,6 +4,15 @@
 pub mod input;
 
 use crate::config::Config;
+use crate::deploy::actors::enhanced_event_bus::EnhancedEventBus;
+use crate::deploy::actors::event_bus::{
+    EventAck, EventBusExt, EventEnvelope, EventSubscription, EventUnsubscribe,
+    SubscriptionId,
+};
+use crate::deploy::actors::events::{LogEvent, LogLevel, LOG_EVENT_TYPE};
+use crate::deploy::actors::message_system::ActorId;
+use crate::deploy::actors::two_channel_bus::{TwoChannelEventBusAccess, MessageHandler};
+use crate::deploy::actors::unified_message::MessageEnvelope as NewMessageEnvelope;
 use crate::interlude::*;
 use std::io::BufRead;
 use tokio::sync::oneshot;
@@ -18,20 +27,26 @@ enum Mode {
 pub struct ConsoleActor {
     #[allow(dead_code)]
     config: Arc<Config>,
+    event_bus: Addr<EnhancedEventBus>,
     mode: Mode,
     input_tx: std::sync::mpsc::Sender<oneshot::Sender<String>>,
+    subscription_id: Option<SubscriptionId>,
+    actor_id: ActorId,
 }
 
 impl ConsoleActor {
-    pub fn new(config: Arc<Config>) -> Self {
+    pub fn new(config: Arc<Config>, event_bus: Addr<EnhancedEventBus>) -> Self {
         let (input_tx, input_rx) = std::sync::mpsc::channel();
 
         Self::create_input_thread(input_rx);
 
         Self {
             config,
+            event_bus,
             mode: Mode::Output,
             input_tx,
+            subscription_id: None,
+            actor_id: ActorId::actor_type("ConsoleActor"),
         }
     }
 
@@ -46,6 +61,15 @@ impl ConsoleActor {
             Mode::Output => {
                 output.send();
             }
+        }
+    }
+
+    fn emit_log(&mut self, level: LogLevel, message: String) {
+        match level {
+            LogLevel::Debug => self.handle_output(Debug(message)),
+            LogLevel::Info => self.handle_output(Info(message)),
+            LogLevel::Warning => self.handle_output(Warning(message)),
+            LogLevel::Error => self.handle_output(Error(message)),
         }
     }
 
@@ -66,6 +90,24 @@ impl ConsoleActor {
 
 impl Actor for ConsoleActor {
     type Context = Context<Self>;
+
+    fn started(&mut self, ctx: &mut Self::Context) {
+        let bus = self.event_bus.clone();
+        let recipient = ctx.address().recipient();
+        let fut = async move { bus.send(EventSubscription::new(LOG_EVENT_TYPE, recipient, None)).await };
+        ctx.spawn(
+            fut.into_actor(self).map(|res, actor, _ctx| match res {
+                Ok(id) => actor.subscription_id = Some(id),
+                Err(err) => log::error!("failed to subscribe console to event bus: {err}"),
+            }),
+        );
+    }
+
+    fn stopped(&mut self, _ctx: &mut Self::Context) {
+        if let Some(id) = self.subscription_id.take() {
+            self.event_bus.do_send(EventUnsubscribe { id });
+        }
+    }
 }
 
 #[derive(Message)]
@@ -123,6 +165,34 @@ where
     }
 }
 
+impl Handler<EventEnvelope> for ConsoleActor {
+    type Result = EventAck;
+
+    fn handle(&mut self, msg: EventEnvelope, _ctx: &mut Context<Self>) -> Self::Result {
+        if let Some(event) = msg.downcast_ref::<LogEvent>() {
+            self.emit_log(event.level, event.message.clone());
+        }
+
+        EventAck::new(msg.event_id())
+    }
+}
+
+impl Handler<NewMessageEnvelope> for ConsoleActor {
+    type Result = ();
+
+    fn handle(&mut self, msg: NewMessageEnvelope, _ctx: &mut Context<Self>) -> Self::Result {
+        let handler = self.create_message_handler(self.actor_id.clone());
+        let message_id = msg.message_id();
+        
+        if let Some(event) = msg.downcast_event::<LogEvent>() {
+            self.emit_log(event.level, event.message.clone());
+            handler.confirm_success(message_id);
+        } else {
+            handler.confirm_error(message_id, "Unknown message type".to_string());
+        }
+    }
+}
+
 #[derive(Message)]
 #[rtype(result = "()")]
 struct StartInput(oneshot::Sender<String>);
@@ -161,6 +231,22 @@ impl Handler<EndInput> for ConsoleActor {
     }
 }
 
+#[derive(Clone)]
+pub struct ConsoleHandle {
+    console: Addr<ConsoleActor>,
+    event_bus: Addr<EnhancedEventBus>,
+}
+
+impl ConsoleHandle {
+    pub fn new(console: Addr<ConsoleActor>, event_bus: Addr<EnhancedEventBus>) -> Self {
+        Self { console, event_bus }
+    }
+
+    pub fn event_bus(&self) -> Addr<EnhancedEventBus> {
+        self.event_bus.clone()
+    }
+}
+
 #[async_trait::async_trait]
 pub trait Console {
     fn debug(&self, msg: String);
@@ -171,28 +257,32 @@ pub trait Console {
 }
 
 #[async_trait::async_trait]
-impl Console for Addr<ConsoleActor> {
+impl Console for ConsoleHandle {
     fn debug(&self, msg: String) {
-        self.do_send(Debug(msg));
+        self.event_bus
+            .publish(LogEvent::new(LogLevel::Debug, msg, None));
     }
 
     fn info(&self, msg: String) {
-        self.do_send(Info(msg));
+        self.event_bus
+            .publish(LogEvent::new(LogLevel::Info, msg, None));
     }
 
     fn warning(&self, msg: String) {
-        self.do_send(Warning(msg));
+        self.event_bus
+            .publish(LogEvent::new(LogLevel::Warning, msg, None));
     }
 
     fn error(&self, msg: String) {
-        self.do_send(Error(msg));
+        self.event_bus
+            .publish(LogEvent::new(LogLevel::Error, msg, None));
     }
 
     async fn read_line(&self) -> String {
         let (tx, rx) = oneshot::channel();
-        self.do_send(StartInput(tx));
+        self.console.do_send(StartInput(tx));
         let line = rx.await.unwrap();
-        self.do_send(EndInput);
+        self.console.do_send(EndInput);
         line
     }
 }
