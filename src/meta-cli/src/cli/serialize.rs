@@ -3,7 +3,7 @@
 
 use super::{Action, ConfigArgs};
 use crate::config::{Config, PathOption};
-use crate::deploy::actors::console::ConsoleActor;
+use crate::deploy::actors::console::ConsoleHandle;
 use crate::deploy::actors::task::serialize::{SerializeAction, SerializeActionGenerator};
 use crate::deploy::actors::task::TaskFinishStatus;
 use crate::deploy::actors::task_manager::{Report, StopReason, TaskManagerInit, TaskSource};
@@ -64,7 +64,7 @@ impl Action for Serialize {
 
         let config = Arc::new(config);
 
-        let console = ConsoleActor::new(Arc::clone(&config)).start();
+        let console = ConsoleHandle::start(Arc::clone(&config));
 
         let action_generator = SerializeActionGenerator::new(
             self.prefix.clone(),

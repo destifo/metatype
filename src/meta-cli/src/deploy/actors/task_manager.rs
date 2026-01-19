@@ -1,12 +1,19 @@
 // Copyright Metatype OÜ, licensed under the Mozilla Public License Version 2.0.
 // SPDX-License-Identifier: MPL-2.0
-use super::console::{Console, ConsoleActor};
+use super::console::{Console, ConsoleHandle};
 use super::discovery::DiscoveryActor;
+use super::event_bus::{
+    DeliveryAck, EventAck, EventEnvelope, EventSubscription, EventUnsubscribe, SubscriptionId,
+};
+use super::events::{
+    DiscoveryDoneEvent, TaskManagerCommand, TaskManagerEvent, WatcherEvent, WatcherEventKind,
+    DISCOVERY_DONE_EVENT_TYPE, TASK_MANAGER_EVENT_TYPE, WATCHER_EVENT_TYPE,
+};
 use super::task::action::{TaskAction, TaskActionGenerator};
-use super::task::deploy::TypegraphData;
 use super::task::{self, TaskActor, TaskFinishStatus};
-use super::watcher::{self, WatcherActor};
+use super::watcher::WatcherActor;
 use crate::{config::Config, interlude::*};
+use actix::MessageResult;
 use colored::OwoColorize;
 use futures::channel::oneshot;
 use indexmap::IndexMap;
@@ -58,10 +65,6 @@ pub mod message {
     #[derive(Message)]
     #[rtype(result = "()")]
     pub struct DiscoveryDone;
-
-    #[derive(Message)]
-    #[rtype(result = "()")]
-    pub struct TypegraphDeployed(pub TypegraphData);
 }
 
 use message::*;
@@ -126,8 +129,9 @@ pub struct TaskManager<A: TaskAction + 'static> {
     stop_reason: Option<StopReason>,
     reports: IndexMap<Arc<Path>, TaskFinishStatus<A>>,
     watcher_addr: Option<Addr<WatcherActor<A>>>,
-    console: Addr<ConsoleActor>,
+    console: ConsoleHandle,
     seen_tasks: usize,
+    subscriptions: Vec<SubscriptionId>,
 }
 
 const DEFAULT_INITIAL_RETRY_INTERVAL: Duration = Duration::from_secs(3);
@@ -138,7 +142,7 @@ pub struct TaskManagerInit<A: TaskAction> {
     max_parallel_tasks: usize,
     max_retry_count: usize,
     initial_retry_interval: Duration,
-    console: Addr<ConsoleActor>,
+    console: ConsoleHandle,
     task_source: TaskSource,
 }
 
@@ -146,7 +150,7 @@ impl<A: TaskAction + 'static> TaskManagerInit<A> {
     pub fn new(
         config: Arc<Config>,
         action_generator: A::Generator,
-        console: Addr<ConsoleActor>,
+        console: ConsoleHandle,
         task_source: TaskSource,
     ) -> Self {
         Self {
@@ -199,6 +203,7 @@ impl<A: TaskAction + 'static> TaskManagerInit<A> {
                 watcher_addr,
                 console,
                 seen_tasks: 0,
+                subscriptions: Vec::new(),
             }
         });
 
@@ -231,7 +236,6 @@ impl<A: TaskAction + 'static> TaskManagerInit<A> {
                 DiscoveryActor::new(
                     self.config.clone(),
                     task_generator.clone(),
-                    addr.clone(),
                     self.console.clone(),
                     path.clone(),
                 )
@@ -243,7 +247,6 @@ impl<A: TaskAction + 'static> TaskManagerInit<A> {
                 DiscoveryActor::new(
                     self.config.clone(),
                     task_generator.clone(),
-                    addr.clone(),
                     self.console.clone(),
                     path.clone(),
                 )
@@ -253,7 +256,6 @@ impl<A: TaskAction + 'static> TaskManagerInit<A> {
                     self.config.clone(),
                     path,
                     task_generator.clone(),
-                    addr.clone(),
                     self.console.clone(),
                 )
                 .unwrap_or_log()
@@ -265,7 +267,7 @@ impl<A: TaskAction + 'static> TaskManagerInit<A> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum TaskReason {
     User, // single file specified with the -f option
     Discovery,
@@ -278,9 +280,48 @@ pub enum TaskReason {
 impl<A: TaskAction + 'static> Actor for TaskManager<A> {
     type Context = Context<Self>;
 
-    fn started(&mut self, _ctx: &mut Self::Context) {
+    fn started(&mut self, ctx: &mut Self::Context) {
         // this cannot mess with the interactive deployment
         self.console.debug("started task manager".to_string());
+
+        let bus = self.console.event_bus();
+        let recipient = ctx.address().recipient();
+        let fut = async move {
+            let mut ids = Vec::new();
+            ids.push(
+                bus.send(EventSubscription::new(
+                    DISCOVERY_DONE_EVENT_TYPE,
+                    recipient.clone(),
+                    None,
+                ))
+                .await?,
+            );
+            ids.push(
+                bus.send(EventSubscription::new(
+                    WATCHER_EVENT_TYPE,
+                    recipient.clone(),
+                    None,
+                ))
+                .await?,
+            );
+            ids.push(
+                bus.send(EventSubscription::new(
+                    TASK_MANAGER_EVENT_TYPE,
+                    recipient,
+                    None,
+                ))
+                .await?,
+            );
+            Result::<Vec<SubscriptionId>>::Ok(ids)
+        };
+        ctx.spawn(fut.into_actor(self).map(|res, actor, _ctx| {
+            match res {
+                Ok(ids) => actor.subscriptions = ids,
+                Err(err) => actor
+                    .console
+                    .error(format!("failed to subscribe task manager: {err}")),
+            }
+        }));
     }
 
     fn stopping(&mut self, ctx: &mut Self::Context) -> Running {
@@ -299,6 +340,9 @@ impl<A: TaskAction + 'static> Actor for TaskManager<A> {
 
     fn stopped(&mut self, _ctx: &mut Self::Context) {
         trace!("TaskManager stopped");
+        for id in self.subscriptions.drain(..) {
+            self.console.event_bus().do_send(EventUnsubscribe { id });
+        }
         // send report
         let report = Report {
             stop_reason: self
@@ -313,6 +357,118 @@ impl<A: TaskAction + 'static> Actor for TaskManager<A> {
         };
 
         self.report_tx.take().unwrap().send(report).unwrap_or_log();
+    }
+}
+
+impl<A: TaskAction + 'static> TaskManager<A> {
+    fn confirm_delivery(&self, envelope: &EventEnvelope) {
+        self.console.send_delivery_ack(DeliveryAck::new(
+            envelope.subscription_id(),
+            envelope.event_id(),
+        ));
+    }
+
+    fn handle_task_finished(&mut self, message: TaskFinished<A>, ctx: &mut Context<Self>) {
+        self.console.debug("task finished".to_string());
+        self.active_tasks.remove(&message.task_ref.path);
+        ctx.address().do_send(NextTask);
+
+        let next_retry_no: Option<usize> =
+            if message.task_ref.retry_no < self.init_params.max_retry_count {
+                match &message.status {
+                    TaskFinishStatus::Error => Some(message.task_ref.retry_no + 1),
+                    TaskFinishStatus::Finished(results) => {
+                        // TODO partial retry - if multiple typegraphs in a single file
+                        if results.iter().any(|r| r.1.is_err()) {
+                            Some(message.task_ref.retry_no + 1)
+                        } else {
+                            None
+                        }
+                    }
+                    TaskFinishStatus::Cancelled => None,
+                }
+            } else {
+                None
+            };
+
+        self.reports
+            .insert(message.task_ref.path.clone(), message.status);
+
+        if let Some(retry_no) = next_retry_no {
+            let path = message.task_ref.path;
+            let task_ref = self.task_generator.generate(path.clone(), retry_no);
+            let task_manager = ctx.address();
+            self.pending_retries.insert(path.clone(), task_ref.id);
+
+            let retry_interval = self.init_params.initial_retry_interval * (retry_no as u32);
+
+            let fut = async move {
+                tokio::time::sleep(retry_interval).await;
+                task_manager.do_send(AddTask {
+                    task_ref,
+                    reason: TaskReason::Retry(retry_no),
+                });
+            };
+            ctx.spawn(fut.in_current_span().into_actor(self));
+        }
+
+        if self.task_queue.is_empty() && self.active_tasks.is_empty() {
+            if self.watcher_addr.is_none() && self.pending_retries.is_empty() {
+                // no watcher, auto stop when all tasks finished
+                self.console.debug("all tasks finished".to_string());
+                self.stop_reason = Some(StopReason::Natural);
+                ctx.stop();
+            } else if let Some(StopReason::Manual) = self.stop_reason {
+                ctx.stop();
+            }
+        }
+    }
+
+    fn handle_discovery_done(&mut self, ctx: &mut Context<Self>) {
+        self.console.debug("discovery done".to_string());
+
+        if self.task_queue.is_empty() && self.active_tasks.is_empty() {
+            if self.seen_tasks == 0 {
+                self.console.error("no typegraphs discovered".to_string());
+                self.stop_reason = Some(StopReason::Error);
+                ctx.stop();
+            } else if self.watcher_addr.is_none() && self.pending_retries.is_empty() {
+                // no watcher, auto stop when all tasks finished
+                self.console.debug("all tasks finished".to_string());
+                self.stop_reason = Some(StopReason::Natural);
+                ctx.stop();
+            } else if let Some(StopReason::Manual) = self.stop_reason {
+                ctx.stop();
+            }
+        }
+    }
+
+    fn handle_watcher_event(&mut self, event: &WatcherEvent, ctx: &mut Context<Self>) {
+        match &event.kind {
+            WatcherEventKind::ConfigChanged { .. } => {
+                ctx.address().do_send(Restart);
+            }
+            WatcherEventKind::DependencyChanged {
+                typegraph_module,
+                dependency_path,
+            } => {
+                ctx.address().do_send(AddTask {
+                    task_ref: self
+                        .task_generator
+                        .generate(typegraph_module.clone().into(), 0),
+                    reason: TaskReason::DependencyChanged(dependency_path.clone()),
+                });
+            }
+            WatcherEventKind::TypegraphModuleChanged { typegraph_module } => {
+                ctx.address().do_send(AddTask {
+                    task_ref: self
+                        .task_generator
+                        .generate(typegraph_module.clone().into(), 0),
+                    reason: TaskReason::FileChanged,
+                });
+            }
+            WatcherEventKind::TypegraphModuleDeleted { .. } => {}
+        }
     }
 }
 
@@ -403,59 +559,7 @@ impl<A: TaskAction + 'static> Handler<TaskFinished<A>> for TaskManager<A> {
     type Result = ();
 
     fn handle(&mut self, message: TaskFinished<A>, ctx: &mut Context<Self>) -> Self::Result {
-        self.console.debug("task finished".to_string());
-        self.active_tasks.remove(&message.task_ref.path);
-        ctx.address().do_send(NextTask);
-
-        let next_retry_no: Option<usize> =
-            if message.task_ref.retry_no < self.init_params.max_retry_count {
-                match &message.status {
-                    TaskFinishStatus::Error => Some(message.task_ref.retry_no + 1),
-                    TaskFinishStatus::Finished(results) => {
-                        // TODO partial retry - if multiple typegraphs in a single file
-                        if results.iter().any(|r| r.1.is_err()) {
-                            Some(message.task_ref.retry_no + 1)
-                        } else {
-                            None
-                        }
-                    }
-                    TaskFinishStatus::Cancelled => None,
-                }
-            } else {
-                None
-            };
-
-        self.reports
-            .insert(message.task_ref.path.clone(), message.status);
-
-        if let Some(retry_no) = next_retry_no {
-            let path = message.task_ref.path;
-            let task_ref = self.task_generator.generate(path.clone(), retry_no);
-            let task_manager = ctx.address();
-            self.pending_retries.insert(path.clone(), task_ref.id);
-
-            let retry_interval = self.init_params.initial_retry_interval * (retry_no as u32);
-
-            let fut = async move {
-                tokio::time::sleep(retry_interval).await;
-                task_manager.do_send(AddTask {
-                    task_ref,
-                    reason: TaskReason::Retry(retry_no),
-                });
-            };
-            ctx.spawn(fut.in_current_span().into_actor(self));
-        }
-
-        if self.task_queue.is_empty() && self.active_tasks.is_empty() {
-            if self.watcher_addr.is_none() && self.pending_retries.is_empty() {
-                // no watcher, auto stop when all tasks finished
-                self.console.debug("all tasks finished".to_string());
-                self.stop_reason = Some(StopReason::Natural);
-                ctx.stop();
-            } else if let Some(StopReason::Manual) = self.stop_reason {
-                ctx.stop();
-            }
-        }
+        self.handle_task_finished(message, ctx);
     }
 }
 
@@ -463,22 +567,44 @@ impl<A: TaskAction + 'static> Handler<DiscoveryDone> for TaskManager<A> {
     type Result = ();
 
     fn handle(&mut self, _: DiscoveryDone, ctx: &mut Context<Self>) -> Self::Result {
-        self.console.debug("discovery done".to_string());
+        self.handle_discovery_done(ctx);
+    }
+}
 
-        if self.task_queue.is_empty() && self.active_tasks.is_empty() {
-            if self.seen_tasks == 0 {
-                self.console.error("no typegraphs discovered".to_string());
-                self.stop_reason = Some(StopReason::Error);
-                ctx.stop();
-            } else if self.watcher_addr.is_none() && self.pending_retries.is_empty() {
-                // no watcher, auto stop when all tasks finished
-                self.console.debug("all tasks finished".to_string());
-                self.stop_reason = Some(StopReason::Natural);
-                ctx.stop();
-            } else if let Some(StopReason::Manual) = self.stop_reason {
-                ctx.stop();
-            }
+impl<A: TaskAction + 'static> Handler<EventEnvelope> for TaskManager<A> {
+    type Result = MessageResult<EventEnvelope>;
+
+    fn handle(&mut self, msg: EventEnvelope, ctx: &mut Context<Self>) -> Self::Result {
+        if msg.downcast_ref::<DiscoveryDoneEvent>().is_some() {
+            self.handle_discovery_done(ctx);
+            self.confirm_delivery(&msg);
+            return MessageResult(EventAck::new(msg.event_id()));
         }
+
+        if let Some(event) = msg.downcast_ref::<WatcherEvent>() {
+            self.handle_watcher_event(event, ctx);
+            self.confirm_delivery(&msg);
+            return MessageResult(EventAck::new(msg.event_id()));
+        }
+
+        if let Some(event) = msg.downcast_ref::<TaskManagerEvent>() {
+            match &event.command {
+                TaskManagerCommand::AddTask { task_ref, reason } => {
+                    ctx.address().do_send(AddTask {
+                        task_ref: task_ref.clone(),
+                        reason: reason.clone(),
+                    });
+                }
+                TaskManagerCommand::Restart => {
+                    ctx.address().do_send(Restart);
+                }
+            }
+            self.confirm_delivery(&msg);
+            return MessageResult(EventAck::new(msg.event_id()));
+        }
+
+        self.confirm_delivery(&msg);
+        MessageResult(EventAck::new(msg.event_id()))
     }
 }
 
@@ -531,15 +657,5 @@ impl<A: TaskAction + 'static> Handler<Restart> for TaskManager<A> {
     fn handle(&mut self, _msg: Restart, ctx: &mut Context<Self>) -> Self::Result {
         self.stop_reason = Some(StopReason::Restart);
         ctx.address().do_send(ForceStop);
-    }
-}
-
-impl<A: TaskAction + 'static> Handler<TypegraphDeployed> for TaskManager<A> {
-    type Result = ();
-
-    fn handle(&mut self, msg: TypegraphDeployed, _ctx: &mut Self::Context) -> Self::Result {
-        if let Some(addr) = &self.watcher_addr {
-            addr.do_send(watcher::message::UpdateDependencies(msg.0));
-        }
     }
 }

@@ -5,7 +5,7 @@ use super::deploy::MigrationAction;
 use super::TaskActor;
 use crate::deploy::actors::task_manager::{TaskManager, TaskRef};
 use crate::interlude::*;
-use crate::{config::Config, deploy::actors::console::ConsoleActor};
+use crate::{config::Config, deploy::actors::console::ConsoleHandle};
 use std::sync::Arc;
 use tokio::process::Command;
 
@@ -37,7 +37,7 @@ pub struct ActionFinalizeContext<A: TaskAction + 'static> {
     pub config: Arc<Config>,
     pub task_manager: Addr<TaskManager<A>>,
     pub task: Addr<TaskActor<A>>,
-    pub console: Addr<ConsoleActor>,
+    pub console: ConsoleHandle,
 }
 
 pub trait OutputData: serde::de::DeserializeOwned + std::fmt::Debug + Unpin + Send {

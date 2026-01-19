@@ -3,6 +3,8 @@
 
 pub mod console;
 pub mod discovery;
+pub mod event_bus;
+pub mod events;
 pub mod task;
 mod task_io;
 pub mod task_manager;

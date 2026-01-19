@@ -1,21 +1,29 @@
 // Copyright Metatype OÜ, licensed under the Mozilla Public License Version 2.0.
 // SPDX-License-Identifier: MPL-2.0
 
-use super::console::Console;
+use super::console::{Console, ConsoleHandle};
+use super::event_bus::{
+    DeliveryAck, EventAck, EventBusExt, EventEnvelope, EventSubscription, EventUnsubscribe,
+    SubscriptionId,
+};
+use super::events::{
+    TaskManagerCommand, TaskManagerEvent, WatcherUpdateEvent, WatcherUpdateKind,
+    WATCHER_UPDATE_EVENT_TYPE,
+};
 use super::task::action::TaskAction;
-use super::task_manager::{self, TaskGenerator, TaskManager, TaskReason};
+use super::task_manager::{TaskGenerator, TaskReason};
 use crate::config::Config;
-use crate::deploy::actors::console::ConsoleActor;
 use crate::deploy::actors::task::deploy::TypegraphData;
 use crate::deploy::push::pusher::RetryManager;
 use crate::interlude::*;
 use crate::typegraph::dependency_graph::DependencyGraph;
 use crate::typegraph::loader::discovery::FileFilter;
+use actix::MessageResult;
 use notify_debouncer_mini::notify::{RecommendedWatcher, RecursiveMode};
 use notify_debouncer_mini::{new_debouncer, notify, DebounceEventResult, Debouncer};
 use pathdiff::diff_paths;
 use std::path::{Path, PathBuf};
-use std::{sync::Arc, time::Duration};
+use std::{marker::PhantomData, sync::Arc, time::Duration};
 
 pub mod message {
     use super::*;
@@ -28,10 +36,6 @@ pub mod message {
     #[derive(Message)]
     #[rtype(result = "()")]
     pub(super) struct File(pub PathBuf);
-
-    #[derive(Message)]
-    #[rtype(result = "()")]
-    pub struct UpdateDependencies(pub TypegraphData);
 
     #[derive(Message)]
     #[rtype(result = "()")]
@@ -60,11 +64,12 @@ pub struct WatcherActor<A: TaskAction + 'static> {
     config: Arc<Config>,
     directory: Arc<Path>,
     task_generator: TaskGenerator,
-    task_manager: Addr<TaskManager<A>>,
-    console: Addr<ConsoleActor>,
+    console: ConsoleHandle,
     debouncer: Option<Debouncer<RecommendedWatcher>>,
     dependency_graph: DependencyGraph,
     file_filter: FileFilter,
+    subscriptions: Vec<SubscriptionId>,
+    _task_action: PhantomData<A>,
 }
 
 impl<A: TaskAction> Actor for WatcherActor<A> {
@@ -76,11 +81,32 @@ impl<A: TaskAction> Actor for WatcherActor<A> {
                 .error(format!("Failed to start watcher: {}", e));
             ctx.stop();
         }
+        let bus = self.console.event_bus();
+        let recipient = ctx.address().recipient();
+        let fut = async move {
+            bus.send(EventSubscription::new(
+                WATCHER_UPDATE_EVENT_TYPE,
+                recipient,
+                None,
+            ))
+            .await
+        };
+        ctx.spawn(fut.into_actor(self).map(|res, actor, _ctx| {
+            match res {
+                Ok(id) => actor.subscriptions.push(id),
+                Err(err) => actor
+                    .console
+                    .error(format!("failed to subscribe watcher: {err}")),
+            }
+        }));
         log::trace!("Watcher actor started");
     }
 
     fn stopped(&mut self, _ctx: &mut Self::Context) {
         let _ = self.debouncer.take();
+        for id in self.subscriptions.drain(..) {
+            self.console.event_bus().do_send(EventUnsubscribe { id });
+        }
         log::trace!("Watcher actor stopped");
     }
 }
@@ -90,19 +116,19 @@ impl<A: TaskAction> WatcherActor<A> {
         config: Arc<Config>,
         directory: Arc<Path>,
         task_generator: TaskGenerator,
-        task_manager: Addr<TaskManager<A>>,
-        console: Addr<ConsoleActor>,
+        console: ConsoleHandle,
     ) -> Result<Self> {
         let file_filter = FileFilter::new(&config)?;
         Ok(Self {
             config,
             directory,
             task_generator,
-            task_manager,
             console,
             debouncer: None,
             dependency_graph: DependencyGraph::default(),
             file_filter,
+            subscriptions: Vec::new(),
+            _task_action: PhantomData,
         })
     }
 
@@ -155,7 +181,10 @@ impl<A: TaskAction + 'static> Handler<File> for WatcherActor<A> {
                 .warning("metatype configuration file changed".to_owned());
             self.console
                 .warning("reloading all the typegraphs".to_owned());
-            self.task_manager.do_send(task_manager::message::Restart);
+            self.console.event_bus().publish(TaskManagerEvent::new(
+                TaskManagerCommand::Restart,
+                Some("WatcherActor".to_string()),
+            ));
             ctx.stop();
         } else {
             let reverse_deps = self.dependency_graph.get_rdeps(&path);
@@ -170,10 +199,13 @@ impl<A: TaskAction + 'static> Handler<File> for WatcherActor<A> {
                         .info(format!("  -> {rel_path}", rel_path = rel_path.display()));
 
                     RetryManager::clear_counter(&path);
-                    self.task_manager.do_send(task_manager::message::AddTask {
-                        task_ref: self.task_generator.generate(rel_path.into(), 0),
-                        reason: TaskReason::DependencyChanged(dependency_path),
-                    });
+                    self.console.event_bus().publish(TaskManagerEvent::new(
+                        TaskManagerCommand::AddTask {
+                            task_ref: self.task_generator.generate(rel_path.into(), 0),
+                            reason: TaskReason::DependencyChanged(dependency_path),
+                        },
+                        Some("WatcherActor".to_string()),
+                    ));
                 }
             } else if path.try_exists().unwrap() {
                 if !self.file_filter.is_excluded(&path) {
@@ -181,10 +213,13 @@ impl<A: TaskAction + 'static> Handler<File> for WatcherActor<A> {
                     self.console.info(format!("File modified: {rel_path:?}"));
 
                     RetryManager::clear_counter(&path);
-                    self.task_manager.do_send(task_manager::message::AddTask {
-                        task_ref: self.task_generator.generate(rel_path.into(), 0),
-                        reason: TaskReason::FileChanged,
-                    });
+                    self.console.event_bus().publish(TaskManagerEvent::new(
+                        TaskManagerCommand::AddTask {
+                            task_ref: self.task_generator.generate(rel_path.into(), 0),
+                            reason: TaskReason::FileChanged,
+                        },
+                        Some("WatcherActor".to_string()),
+                    ));
                 }
             } else {
                 RetryManager::clear_counter(&path);
@@ -198,21 +233,33 @@ impl<A: TaskAction + 'static> Handler<File> for WatcherActor<A> {
     }
 }
 
-impl<A: TaskAction + 'static> Handler<UpdateDependencies> for WatcherActor<A> {
-    type Result = ();
-
-    fn handle(&mut self, msg: UpdateDependencies, _ctx: &mut Self::Context) -> Self::Result {
-        let TypegraphData {
-            path, artifacts, ..
-        } = msg.0;
-        self.dependency_graph.update_typegraph(path, &artifacts)
-    }
-}
-
 impl<A: TaskAction + 'static> Handler<RemoveTypegraph> for WatcherActor<A> {
     type Result = ();
 
     fn handle(&mut self, msg: RemoveTypegraph, _ctx: &mut Self::Context) -> Self::Result {
         self.dependency_graph.remove_typegraph_at(&msg.0)
+    }
+}
+
+impl<A: TaskAction + 'static> Handler<EventEnvelope> for WatcherActor<A> {
+    type Result = MessageResult<EventEnvelope>;
+
+    fn handle(&mut self, msg: EventEnvelope, _ctx: &mut Self::Context) -> Self::Result {
+        if let Some(event) = msg.downcast_ref::<WatcherUpdateEvent>() {
+            match &event.update {
+                WatcherUpdateKind::Dependencies(data) => {
+                    let TypegraphData {
+                        path, artifacts, ..
+                    } = data;
+                    self.dependency_graph
+                        .update_typegraph(path.clone(), artifacts);
+                }
+            }
+        }
+
+        self.console
+            .send_delivery_ack(DeliveryAck::new(msg.subscription_id(), msg.event_id()));
+
+        MessageResult(EventAck::new(msg.event_id()))
     }
 }

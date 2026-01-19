@@ -100,11 +100,12 @@ impl Action for Doctor {
                         };
 
                         format!(
-                            "{}{} ({}, {} secrets)",
+                            "{}{}{} ({}, {} secrets)",
                             info.prefix.unwrap_or("".to_string()).italic(),
                             target,
                             kind,
-                            info.env.len()
+                            info.env.len(),
+                            info.secrets.len()
                         )
                     })
                     .collect::<Vec<_>>();
