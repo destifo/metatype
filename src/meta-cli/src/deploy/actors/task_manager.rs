@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: MPL-2.0
 use super::console::{Console, ConsoleActor};
 use super::discovery::DiscoveryActor;
+use super::event_bus::{EventBusActor, EventBusConfig, EventBusExt, EventId};
+use super::events::event_types;
 use super::task::action::{TaskAction, TaskActionGenerator};
 use super::task::deploy::TypegraphData;
 use super::task::{self, TaskActor, TaskFinishStatus};
@@ -128,6 +130,8 @@ pub struct TaskManager<A: TaskAction + 'static> {
     watcher_addr: Option<Addr<WatcherActor<A>>>,
     console: Addr<ConsoleActor>,
     seen_tasks: usize,
+    /// Event bus for centralized message dispatching
+    event_bus: Addr<EventBusActor>,
 }
 
 const DEFAULT_INITIAL_RETRY_INTERVAL: Duration = Duration::from_secs(3);
@@ -174,6 +178,9 @@ impl<A: TaskAction + 'static> TaskManagerInit<A> {
     pub async fn run(self) -> Report<A> {
         let (report_tx, report_rx) = oneshot::channel();
 
+        // Create the event bus with default configuration
+        let event_bus = EventBusActor::new(EventBusConfig::default()).start();
+
         TaskManager::<A>::create(move |ctx| {
             let addr = ctx.address();
 
@@ -183,9 +190,10 @@ impl<A: TaskAction + 'static> TaskManagerInit<A> {
                 next_task_id: Arc::new(AtomicUsize::new(1)),
             };
 
-            let watcher_addr = self.start_source(addr, task_generator.clone());
+            let watcher_addr = self.start_source(addr.clone(), task_generator.clone());
 
             let console = self.console.clone();
+            let event_bus_clone = event_bus.clone();
 
             TaskManager::<A> {
                 init_params: self,
@@ -199,6 +207,7 @@ impl<A: TaskAction + 'static> TaskManagerInit<A> {
                 watcher_addr,
                 console,
                 seen_tasks: 0,
+                event_bus: event_bus_clone,
             }
         });
 
@@ -275,12 +284,109 @@ pub enum TaskReason {
     Retry(usize),
 }
 
+impl<A: TaskAction + 'static> TaskManager<A> {
+    /// Get a reference to the event bus
+    pub fn event_bus(&self) -> &Addr<EventBusActor> {
+        &self.event_bus
+    }
+
+    /// Set up event bus subscriptions for this task manager
+    fn setup_event_subscriptions(&self, ctx: &mut Context<Self>) {
+        let addr = ctx.address();
+        let event_bus = self.event_bus.clone();
+
+        // Subscribe to events via the event bus
+        let fut = async move {
+            // Subscribe to AddTask events
+            if let Err(e) = event_bus
+                .subscribe_handler(
+                    event_types::ADD_TASK,
+                    "task_manager",
+                    addr.clone().recipient::<AddTask>(),
+                )
+                .await
+            {
+                warn!("Failed to subscribe to ADD_TASK events: {}", e);
+            }
+
+            // Subscribe to Stop events
+            if let Err(e) = event_bus
+                .subscribe_handler(
+                    event_types::STOP,
+                    "task_manager",
+                    addr.clone().recipient::<Stop>(),
+                )
+                .await
+            {
+                warn!("Failed to subscribe to STOP events: {}", e);
+            }
+
+            // Subscribe to ForceStop events
+            if let Err(e) = event_bus
+                .subscribe_handler(
+                    event_types::FORCE_STOP,
+                    "task_manager",
+                    addr.clone().recipient::<ForceStop>(),
+                )
+                .await
+            {
+                warn!("Failed to subscribe to FORCE_STOP events: {}", e);
+            }
+
+            // Subscribe to Restart events
+            if let Err(e) = event_bus
+                .subscribe_handler(
+                    event_types::RESTART,
+                    "task_manager",
+                    addr.clone().recipient::<Restart>(),
+                )
+                .await
+            {
+                warn!("Failed to subscribe to RESTART events: {}", e);
+            }
+
+            // Subscribe to DiscoveryDone events
+            if let Err(e) = event_bus
+                .subscribe_handler(
+                    event_types::DISCOVERY_DONE,
+                    "task_manager",
+                    addr.clone().recipient::<DiscoveryDone>(),
+                )
+                .await
+            {
+                warn!("Failed to subscribe to DISCOVERY_DONE events: {}", e);
+            }
+
+            debug!("TaskManager subscribed to event bus");
+        };
+
+        ctx.spawn(fut.in_current_span().into_actor(self));
+    }
+
+    /// Publish an event via the event bus and send acknowledgment
+    pub fn publish_event(&self, event_type: &'static str, event_id: EventId) {
+        let event_bus = self.event_bus.clone();
+        let fut = async move {
+            let _ = event_bus.publish(event_type, event_id, true).await;
+        };
+        tokio::spawn(fut.in_current_span());
+    }
+
+    /// Send acknowledgment for a received event
+    pub fn ack_event(&self, event_id: EventId, success: bool) {
+        self.event_bus.send_ack(event_id, success, None);
+    }
+}
+
 impl<A: TaskAction + 'static> Actor for TaskManager<A> {
     type Context = Context<Self>;
 
-    fn started(&mut self, _ctx: &mut Self::Context) {
+    fn started(&mut self, ctx: &mut Self::Context) {
         // this cannot mess with the interactive deployment
         self.console.debug("started task manager".to_string());
+
+        // Set up event bus subscriptions
+        self.setup_event_subscriptions(ctx);
     }
 
     fn stopping(&mut self, ctx: &mut Self::Context) -> Running {
