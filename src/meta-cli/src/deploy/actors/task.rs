@@ -20,7 +20,13 @@ pub mod list;
 pub mod serialize;
 
 use self::action::{ActionFinalizeContext, ActionResult, TaskAction};
-use super::console::{Console, ConsoleActor};
+use super::central_bus::{CentralEventBus, CentralEventBusAccess};
+use super::console::{Console, ConsoleHandle};
+use super::event_bus::{EventAck, EventEnvelope, EventSubscription, EventUnsubscribe, SubscriptionId};
+use super::events::{ActorCommunicationEvent, TaskFinishedEvent, TaskProgressEvent, TaskProgressStage, ACTOR_COMMUNICATION_EVENT_TYPE};
+use super::message_system::ActorId;
+use super::two_channel_bus::{TwoChannelEventBusAccess, MessageHandler};
+use super::unified_message::MessageEnvelope as NewMessageEnvelope;
 use super::task_manager::{self, TaskManager};
 use crate::config::Config;
 use crate::deploy::actors::task_io::TaskIoActor;
@@ -93,10 +99,12 @@ pub struct TaskActor<A: TaskAction + 'static> {
     process: Option<Box<dyn TokioChildWrapper>>,
     io: Option<Addr<TaskIoActor<A>>>,
     task_manager: Addr<TaskManager<A>>,
-    console: Addr<ConsoleActor>,
+    console: ConsoleHandle,
     results: IndexMap<String, ActionResult<A>>, // for the report
     timeout_duration: Duration,
-    max_retry_count: usize, // for the progress display
+    max_retry_count: usize,
+    subscriptions: Vec<SubscriptionId>,
+    actor_id: ActorId,
 }
 
 impl<A> TaskActor<A>
@@ -108,7 +116,7 @@ where
         action_generator: A::Generator,
         initial_action: A,
         task_manager: Addr<TaskManager<A>>,
-        console: Addr<ConsoleActor>,
+        console: ConsoleHandle,
         max_retry_count: usize,
     ) -> Self {
         Self {
@@ -133,6 +141,8 @@ where
                     .unwrap_or(DEFAULT_TIMEOUT),
             ),
             max_retry_count,
+            subscriptions: Vec::new(),
+            actor_id: ActorId::instance(format!("TaskActor:{}", initial_action.get_task_ref().path.display())),
         }
     }
 
@@ -169,10 +179,39 @@ impl<A: TaskAction + 'static> Actor for TaskActor<A> {
     type Context = Context<Self>;
 
     fn started(&mut self, ctx: &mut Self::Context) {
+        // Subscribe to actor communication events for this specific task
+        let bus = CentralEventBus::get();
+        let recipient = ctx.address().recipient();
+        let task_path = self.get_path_owned();
+        let fut = async move {
+            bus.send(EventSubscription::new(
+                ACTOR_COMMUNICATION_EVENT_TYPE,
+                recipient,
+                Some(Arc::new(move |envelope| {
+                    // Only handle events targeted at this specific TaskActor
+                    if let Some(event) = envelope.downcast_ref::<ActorCommunicationEvent>() {
+                        event.target_actor == format!("TaskActor:{}", task_path.display())
+                    } else {
+                        false
+                    }
+                })),
+            ))
+            .await
+        };
+        ctx.spawn(
+            fut.into_actor(self).map(|res, actor, _ctx| match res {
+                Ok(id) => actor.subscriptions.push(id),
+                Err(err) => actor.console.error(format!("failed to subscribe task actor: {err}")),
+            }),
+        );
+
         self.start_process(ctx);
     }
 
     fn stopped(&mut self, _ctx: &mut Self::Context) {
+        for id in self.subscriptions.drain(..) {
+            CentralEventBus::get().do_send(EventUnsubscribe { id });
+        }
         trace!("task actor stopped: {:?}", self.get_path());
     }
 }
@@ -182,6 +221,11 @@ impl<A: TaskAction + 'static> Handler<StartProcess> for TaskActor<A> {
 
     fn handle(&mut self, StartProcess(cmd): StartProcess, ctx: &mut Context<Self>) -> Self::Result {
         use process_wrap::tokio::*;
+        self.publish_to_central(TaskProgressEvent::new(
+            self.action.get_task_ref().clone(),
+            TaskProgressStage::Started,
+            Some("TaskActor".to_string()),
+        ));
         let retry_no = self.action.get_task_ref().retry_no;
         let retry_progress = if retry_no > 0 {
             let max_retry = self.max_retry_count;
@@ -265,6 +309,11 @@ impl<A: TaskAction + 'static> Handler<WaitForProcess<A>> for TaskActor<A> {
         WaitForProcess(followup_options): WaitForProcess<A>,
         ctx: &mut Context<Self>,
     ) -> Self::Result {
+        self.publish_to_central(TaskProgressEvent::new(
+            self.action.get_task_ref().clone(),
+            TaskProgressStage::WaitingForExit,
+            Some("TaskActor".to_string()),
+        ));
         let Some(process) = self.process.take() else {
             self.console
                 .error(format!("task process not found for {:?}", self.get_path()));
@@ -375,11 +424,11 @@ impl<A: TaskAction + 'static> Handler<Exit<A>> for TaskActor<A> {
         if let TaskFinishStatus::<A>::Finished(res) = &mut message.0 {
             std::mem::swap(res, &mut self.results);
         }
-        self.task_manager
-            .do_send(task_manager::message::TaskFinished {
-                task_ref: self.action.get_task_ref().clone(),
-                status: message.0,
-            });
+        self.publish_to_central(TaskFinishedEvent::new(
+            self.action.get_task_ref().clone(),
+            message.0,
+            Some("TaskActor".to_string()),
+        ));
         ctx.stop();
     }
 }
@@ -389,9 +438,62 @@ impl<A: TaskAction + 'static> Handler<Stop> for TaskActor<A> {
 
     fn handle(&mut self, _msg: Stop, _ctx: &mut Context<Self>) -> Self::Result {
         let path = self.get_path_owned();
+        self.publish_to_central(TaskProgressEvent::new(
+            self.action.get_task_ref().clone(),
+            TaskProgressStage::Stopping,
+            Some("TaskActor".to_string()),
+        ));
         if let Some(process) = &mut self.process {
             self.console.warning(format!("killing task for {:?}", path));
             process.start_kill().unwrap();
+        }
+    }
+}
+
+impl<A: TaskAction + 'static> Handler<EventEnvelope> for TaskActor<A> {
+    type Result = EventAck;
+
+    fn handle(&mut self, msg: EventEnvelope, ctx: &mut Context<Self>) -> Self::Result {
+        if let Some(event) = msg.downcast_ref::<ActorCommunicationEvent>() {
+            let expected_target = format!("TaskActor:{}", self.get_path().display());
+            if event.target_actor == expected_target {
+                match &event.command {
+                    ActorCommunicationCommand::Stop => {
+                        ctx.address().do_send(Stop);
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        EventAck::new(msg.event_id())
+    }
+}
+
+impl<A: TaskAction + 'static> Handler<NewMessageEnvelope> for TaskActor<A> {
+    type Result = ();
+
+    fn handle(&mut self, msg: NewMessageEnvelope, ctx: &mut Context<Self>) -> Self::Result {
+        let handler = self.create_message_handler(self.actor_id.clone());
+        let message_id = msg.message_id();
+        
+        if let Some(event) = msg.downcast_event::<ActorCommunicationEvent>() {
+            let expected_target = format!("TaskActor:{}", self.get_path().display());
+            if event.target_actor == expected_target {
+                match &event.command {
+                    ActorCommunicationCommand::Stop => {
+                        ctx.address().do_send(Stop);
+                        handler.confirm_success(message_id);
+                    }
+                    _ => {
+                        handler.confirm_error(message_id, "Unsupported command".to_string());
+                    }
+                }
+            } else {
+                handler.confirm_error(message_id, "Message not for this actor".to_string());
+            }
+        } else {
+            handler.confirm_error(message_id, "Unknown message type".to_string());
         }
     }
 }

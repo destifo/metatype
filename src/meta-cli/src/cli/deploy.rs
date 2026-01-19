@@ -6,7 +6,8 @@ use self::actors::task_manager::{self, StopReason};
 use super::{Action, ConfigArgs, NodeArgs};
 use crate::config::Config;
 use crate::deploy::actors;
-use crate::deploy::actors::console::ConsoleActor;
+use crate::deploy::actors::central_bus::CentralEventBus;
+use crate::deploy::actors::console::{ConsoleActor, ConsoleHandle};
 use crate::interlude::*;
 use crate::secrets::{RawSecrets, Secrets};
 use clap::Parser;
@@ -205,7 +206,9 @@ mod default_mode {
     use super::*;
 
     pub async fn run(deploy: Deploy) -> Result<ExitStatus> {
-        let console = ConsoleActor::new(Arc::clone(&deploy.config)).start();
+        let (outbound_bus, _inbound_bus) = CentralEventBus::initialize();
+        let console_actor = ConsoleActor::new(Arc::clone(&deploy.config), outbound_bus.clone()).start();
+        let console = ConsoleHandle::new(console_actor, outbound_bus);
 
         let mut secrets = deploy.secrets.clone();
         secrets.apply_overrides(&deploy.options.secrets)?;
@@ -291,7 +294,9 @@ mod watch_mode {
             bail!("Cannot use --file in watch mode");
         }
 
-        let console = ConsoleActor::new(Arc::clone(&deploy.config)).start();
+        let outbound_bus = CentralEventBus::get_outbound();
+        let console_actor = ConsoleActor::new(Arc::clone(&deploy.config), outbound_bus.clone()).start();
+        let console = ConsoleHandle::new(console_actor, outbound_bus);
 
         let mut secrets = deploy.secrets.clone();
         secrets.apply_overrides(&deploy.options.secrets)?;

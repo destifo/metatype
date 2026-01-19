@@ -9,7 +9,8 @@ use crate::config::PathOption;
 use crate::deploy::actors::task::serialize::{SerializeAction, SerializeActionGenerator};
 use crate::deploy::actors::task_manager::{TaskManagerInit, TaskSource};
 use crate::interlude::*;
-use crate::{config::Config, deploy::actors::console::ConsoleActor};
+use crate::{config::Config, deploy::actors::console::{ConsoleActor, ConsoleHandle}};
+use crate::deploy::actors::central_bus::CentralEventBus;
 use actix::Actor;
 use clap::Parser;
 use dashmap::DashMap;
@@ -223,7 +224,9 @@ async fn load_tg_at(
     name: Option<&str>,
     dir: &Path,
 ) -> anyhow::Result<Arc<Typegraph>> {
-    let console = ConsoleActor::new(Arc::clone(&config)).start();
+    let (outbound_bus, _inbound_bus) = CentralEventBus::initialize();
+    let console_actor = ConsoleActor::new(Arc::clone(&config), outbound_bus.clone()).start();
+    let console = ConsoleHandle::new(console_actor, outbound_bus);
 
     let config_dir: Arc<Path> = config.dir().unwrap_or_log().into();
     let init = TaskManagerInit::<SerializeAction>::new(

@@ -10,7 +10,9 @@ use super::action::{
 };
 use super::command::build_task_command;
 use crate::deploy::actors::console::Console;
-use crate::deploy::actors::task_manager::{self, TaskRef};
+use crate::deploy::actors::event_bus::EventBusExt;
+use crate::deploy::actors::events::{WatcherUpdateEvent, WatcherUpdateKind};
+use crate::deploy::actors::task_manager::TaskRef;
 use crate::interlude::*;
 use crate::secrets::Secrets;
 use crate::typegraph::rpc::{RpcCall as TypegraphRpcCall, RpcDispatch};
@@ -327,10 +329,10 @@ impl TaskAction for DeployAction {
                         }))
                     }
                     None => {
-                        ctx.task_manager
-                            .do_send(task_manager::message::TypegraphDeployed(
-                                data.typegraph.clone(),
-                            ));
+                        ctx.console.event_bus().publish(WatcherUpdateEvent::new(
+                            WatcherUpdateKind::Dependencies(data.typegraph.clone()),
+                            Some("DeployAction".to_string()),
+                        ));
                         ctx.console.info(format!(
                             "{icon} successfully deployed typegraph {name} from {path}",
                             icon = "✓".green(),

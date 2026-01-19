@@ -1,39 +1,42 @@
 // Copyright Metatype OÜ, licensed under the Mozilla Public License Version 2.0.
 // SPDX-License-Identifier: MPL-2.0
 
-use crate::deploy::actors::task_manager::{self, TaskReason};
+use crate::deploy::actors::task_manager::TaskReason;
 use crate::interlude::*;
 
 use pathdiff::diff_paths;
 
 use crate::{config::Config, typegraph::loader::discovery::Discovery};
 
-use super::console::{Console, ConsoleActor};
+use super::central_bus::{CentralEventBus, CentralEventBusAccess};
+use super::console::{Console, ConsoleHandle};
+use super::events::{DiscoveryDoneEvent, TaskManagerCommand, TaskManagerEvent};
+use super::message_system::ActorId;
+use super::two_channel_bus::{TwoChannelEventBusAccess, MessageHandler};
 use super::task::action::TaskAction;
-use super::task_manager::{TaskGenerator, TaskManager};
+use super::task_manager::TaskGenerator;
 
 pub struct DiscoveryActor<A: TaskAction + 'static> {
     config: Arc<Config>,
     task_generator: TaskGenerator,
-    task_manager: Addr<TaskManager<A>>,
-    console: Addr<ConsoleActor>,
+    console: ConsoleHandle,
     directory: Arc<Path>,
+    actor_id: ActorId,
 }
 
 impl<A: TaskAction + 'static> DiscoveryActor<A> {
     pub fn new(
         config: Arc<Config>,
         task_generator: TaskGenerator,
-        task_manager: Addr<TaskManager<A>>,
-        console: Addr<ConsoleActor>,
+        console: ConsoleHandle,
         directory: Arc<Path>,
     ) -> Self {
         Self {
             config,
             task_generator,
-            task_manager,
             console,
             directory,
+            actor_id: ActorId::actor_type("DiscoveryActor"),
         }
     }
 }
@@ -50,7 +53,6 @@ impl<A: TaskAction + 'static> Actor for DiscoveryActor<A> {
         log::trace!("DiscoveryActor started; directory={:?}", self.directory);
         let config = Arc::clone(&self.config);
         let dir = self.directory.clone();
-        let task_manager = self.task_manager.clone();
         let console = self.console.clone();
         let discovery = ctx.address();
         let task_generator = self.task_generator.clone();
@@ -64,11 +66,13 @@ impl<A: TaskAction + 'static> Actor for DiscoveryActor<A> {
                     Ok(path) => {
                         let rel_path = diff_paths(path, &dir).unwrap();
                         console.debug(format!("discovered typegraph definition at {rel_path:?}"));
-
-                        task_manager.do_send(task_manager::message::AddTask {
-                            task_ref: task_generator.generate(rel_path.into(), 0),
-                            reason: TaskReason::Discovery,
-                        });
+                        CentralEventBus::get().publish(TaskManagerEvent::new(
+                            TaskManagerCommand::AddTask {
+                                task_ref: task_generator.generate(rel_path.into(), 0),
+                                reason: TaskReason::Discovery,
+                            },
+                            Some("DiscoveryActor".to_string()),
+                        ));
                     }
                     Err(err) => console.error(format!("Error while discovering modules: {}", err)),
                 })
@@ -77,7 +81,7 @@ impl<A: TaskAction + 'static> Actor for DiscoveryActor<A> {
                 Ok(_) => (),
                 Err(err) => console.error(format!("Error while discovering modules: {}", err)),
             }
-            task_manager.do_send(task_manager::message::DiscoveryDone);
+            CentralEventBus::get().publish(DiscoveryDoneEvent::new(dir.clone(), Some("DiscoveryActor".to_string())));
             discovery.do_send(Stop);
         }
         .in_current_span();

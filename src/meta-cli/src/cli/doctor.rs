@@ -100,7 +100,7 @@ impl Action for Doctor {
                         };
 
                         format!(
-                            "{}{} ({}, {} secrets)",
+                            "{}{}{} ({}, {} secrets)",
                             info.prefix.unwrap_or("".to_string()).italic(),
                             target,
                             kind,
