@@ -135,6 +135,7 @@ pub struct Unsubscribe {
 }
 
 /// Internal tracking for pending acknowledgments
+#[allow(dead_code)]
 struct PendingAckInfo {
     event_id: EventId,
     event_type: &'static str,
@@ -251,6 +252,7 @@ pub struct EventBusActor {
 }
 
 /// Trait for handling event delivery
+#[allow(dead_code)]
 trait DeliveryHandler: Send + 'static {
     /// Attempt to deliver an event, returns true if delivery was successful
     fn deliver(&self, event_id: EventId) -> bool;
@@ -524,13 +526,13 @@ where
 }
 
 /// Typed delivery handler that can send messages to a recipient
+#[allow(dead_code)]
 struct TypedDeliveryHandler<M>
 where
     M: Message + Send + 'static,
     M::Result: Send,
 {
     recipient: Recipient<M>,
-    #[allow(dead_code)]
     message_factory: Box<dyn Fn(EventId) -> Option<M> + Send>,
 }
 
