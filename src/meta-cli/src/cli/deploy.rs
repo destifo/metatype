@@ -6,7 +6,7 @@ use self::actors::task_manager::{self, StopReason};
 use super::{Action, ConfigArgs, NodeArgs};
 use crate::config::Config;
 use crate::deploy::actors;
-use crate::deploy::actors::console::ConsoleActor;
+use crate::deploy::actors::console::ConsoleHandle;
 use crate::interlude::*;
 use crate::secrets::{RawSecrets, Secrets};
 use clap::Parser;
@@ -205,7 +205,7 @@ mod default_mode {
     use super::*;
 
     pub async fn run(deploy: Deploy) -> Result<ExitStatus> {
-        let console = ConsoleActor::new(Arc::clone(&deploy.config)).start();
+        let console = ConsoleHandle::start(Arc::clone(&deploy.config));
 
         let mut secrets = deploy.secrets.clone();
         secrets.apply_overrides(&deploy.options.secrets)?;
@@ -291,7 +291,7 @@ mod watch_mode {
             bail!("Cannot use --file in watch mode");
         }
 
-        let console = ConsoleActor::new(Arc::clone(&deploy.config)).start();
+        let console = ConsoleHandle::start(Arc::clone(&deploy.config));
 
         let mut secrets = deploy.secrets.clone();
         secrets.apply_overrides(&deploy.options.secrets)?;

@@ -20,9 +20,11 @@ pub mod list;
 pub mod serialize;
 
 use self::action::{ActionFinalizeContext, ActionResult, TaskAction};
-use super::console::{Console, ConsoleActor};
+use super::console::{Console, ConsoleHandle};
+use super::events::{TaskProgressEvent, TaskProgressStage};
 use super::task_manager::{self, TaskManager};
 use crate::config::Config;
+use crate::deploy::actors::event_bus::EventBusExt;
 use crate::deploy::actors::task_io::TaskIoActor;
 use crate::interlude::*;
 use action::{get_typegraph_name, TaskActionGenerator};
@@ -86,6 +88,20 @@ pub enum TaskFinishStatus<A: TaskAction> {
     Finished(IndexMap<String, ActionResult<A>>),
 }
 
+impl<A> Clone for TaskFinishStatus<A>
+where
+    A: TaskAction,
+    ActionResult<A>: Clone,
+{
+    fn clone(&self) -> Self {
+        match self {
+            TaskFinishStatus::Cancelled => TaskFinishStatus::Cancelled,
+            TaskFinishStatus::Error => TaskFinishStatus::Error,
+            TaskFinishStatus::Finished(results) => TaskFinishStatus::Finished(results.clone()),
+        }
+    }
+}
+
 pub struct TaskActor<A: TaskAction + 'static> {
     config: Arc<Config>,
     action_generator: A::Generator,
@@ -93,7 +109,7 @@ pub struct TaskActor<A: TaskAction + 'static> {
     process: Option<Box<dyn TokioChildWrapper>>,
     io: Option<Addr<TaskIoActor<A>>>,
     task_manager: Addr<TaskManager<A>>,
-    console: Addr<ConsoleActor>,
+    console: ConsoleHandle,
     results: IndexMap<String, ActionResult<A>>, // for the report
     timeout_duration: Duration,
     max_retry_count: usize, // for the progress display
@@ -108,7 +124,7 @@ where
         action_generator: A::Generator,
         initial_action: A,
         task_manager: Addr<TaskManager<A>>,
-        console: Addr<ConsoleActor>,
+        console: ConsoleHandle,
         max_retry_count: usize,
     ) -> Self {
         Self {
@@ -182,6 +198,11 @@ impl<A: TaskAction + 'static> Handler<StartProcess> for TaskActor<A> {
 
     fn handle(&mut self, StartProcess(cmd): StartProcess, ctx: &mut Context<Self>) -> Self::Result {
         use process_wrap::tokio::*;
+        self.console.event_bus().publish(TaskProgressEvent::new(
+            self.action.get_task_ref().clone(),
+            TaskProgressStage::Started,
+            Some("TaskActor".to_string()),
+        ));
         let retry_no = self.action.get_task_ref().retry_no;
         let retry_progress = if retry_no > 0 {
             let max_retry = self.max_retry_count;
@@ -265,6 +286,11 @@ impl<A: TaskAction + 'static> Handler<WaitForProcess<A>> for TaskActor<A> {
         WaitForProcess(followup_options): WaitForProcess<A>,
         ctx: &mut Context<Self>,
     ) -> Self::Result {
+        self.console.event_bus().publish(TaskProgressEvent::new(
+            self.action.get_task_ref().clone(),
+            TaskProgressStage::WaitingForExit,
+            Some("TaskActor".to_string()),
+        ));
         let Some(process) = self.process.take() else {
             self.console
                 .error(format!("task process not found for {:?}", self.get_path()));
@@ -389,6 +415,11 @@ impl<A: TaskAction + 'static> Handler<Stop> for TaskActor<A> {
 
     fn handle(&mut self, _msg: Stop, _ctx: &mut Context<Self>) -> Self::Result {
         let path = self.get_path_owned();
+        self.console.event_bus().publish(TaskProgressEvent::new(
+            self.action.get_task_ref().clone(),
+            TaskProgressStage::Stopping,
+            Some("TaskActor".to_string()),
+        ));
         if let Some(process) = &mut self.process {
             self.console.warning(format!("killing task for {:?}", path));
             process.start_kill().unwrap();

@@ -8,7 +8,7 @@ use super::{
         TaskActor,
     },
 };
-use crate::deploy::actors::console::ConsoleActor;
+use crate::deploy::actors::console::ConsoleHandle;
 use crate::interlude::*;
 use colored::OwoColorize;
 use futures::lock::Mutex;
@@ -95,7 +95,7 @@ pub(super) struct TaskIoActor<A: TaskAction + 'static> {
     stdin: Arc<Mutex<ChildStdin>>,
     action: A,
     task: Addr<TaskActor<A>>,
-    console: Addr<ConsoleActor>,
+    console: ConsoleHandle,
     results: Vec<ActionResult<A>>,
     rpc_message_buffer: String,
 }
@@ -105,7 +105,7 @@ impl<A: TaskAction + 'static> TaskIoActor<A> {
         task: Addr<TaskActor<A>>,
         action: A,
         process: &mut Box<dyn TokioChildWrapper>,
-        console: Addr<ConsoleActor>,
+        console: ConsoleHandle,
     ) -> Result<Addr<Self>> {
         let stdin = process
             .stdin()

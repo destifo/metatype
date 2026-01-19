@@ -1,37 +1,35 @@
 // Copyright Metatype OÜ, licensed under the Mozilla Public License Version 2.0.
 // SPDX-License-Identifier: MPL-2.0
 
-use crate::deploy::actors::task_manager::{self, TaskReason};
+use crate::deploy::actors::task_manager::TaskReason;
 use crate::interlude::*;
 
 use pathdiff::diff_paths;
 
 use crate::{config::Config, typegraph::loader::discovery::Discovery};
 
-use super::console::{Console, ConsoleActor};
-use super::task::action::TaskAction;
-use super::task_manager::{TaskGenerator, TaskManager};
+use super::console::{Console, ConsoleHandle};
+use super::events::{DiscoveryDoneEvent, TaskManagerCommand, TaskManagerEvent};
+use super::task_manager::TaskGenerator;
+use crate::deploy::actors::event_bus::EventBusExt;
 
-pub struct DiscoveryActor<A: TaskAction + 'static> {
+pub struct DiscoveryActor {
     config: Arc<Config>,
     task_generator: TaskGenerator,
-    task_manager: Addr<TaskManager<A>>,
-    console: Addr<ConsoleActor>,
+    console: ConsoleHandle,
     directory: Arc<Path>,
 }
 
-impl<A: TaskAction + 'static> DiscoveryActor<A> {
+impl DiscoveryActor {
     pub fn new(
         config: Arc<Config>,
         task_generator: TaskGenerator,
-        task_manager: Addr<TaskManager<A>>,
-        console: Addr<ConsoleActor>,
+        console: ConsoleHandle,
         directory: Arc<Path>,
     ) -> Self {
         Self {
             config,
             task_generator,
-            task_manager,
             console,
             directory,
         }
@@ -42,7 +40,7 @@ impl<A: TaskAction + 'static> DiscoveryActor<A> {
 #[rtype(result = "()")]
 struct Stop;
 
-impl<A: TaskAction + 'static> Actor for DiscoveryActor<A> {
+impl Actor for DiscoveryActor {
     type Context = Context<Self>;
 
     #[tracing::instrument(skip(self))]
@@ -50,8 +48,8 @@ impl<A: TaskAction + 'static> Actor for DiscoveryActor<A> {
         log::trace!("DiscoveryActor started; directory={:?}", self.directory);
         let config = Arc::clone(&self.config);
         let dir = self.directory.clone();
-        let task_manager = self.task_manager.clone();
         let console = self.console.clone();
+        let event_bus = self.console.event_bus();
         let discovery = ctx.address();
         let task_generator = self.task_generator.clone();
 
@@ -64,11 +62,13 @@ impl<A: TaskAction + 'static> Actor for DiscoveryActor<A> {
                     Ok(path) => {
                         let rel_path = diff_paths(path, &dir).unwrap();
                         console.debug(format!("discovered typegraph definition at {rel_path:?}"));
-
-                        task_manager.do_send(task_manager::message::AddTask {
-                            task_ref: task_generator.generate(rel_path.into(), 0),
-                            reason: TaskReason::Discovery,
-                        });
+                        event_bus.publish(TaskManagerEvent::new(
+                            TaskManagerCommand::AddTask {
+                                task_ref: task_generator.generate(rel_path.into(), 0),
+                                reason: TaskReason::Discovery,
+                            },
+                            Some("DiscoveryActor".to_string()),
+                        ));
                     }
                     Err(err) => console.error(format!("Error while discovering modules: {}", err)),
                 })
@@ -77,7 +77,10 @@ impl<A: TaskAction + 'static> Actor for DiscoveryActor<A> {
                 Ok(_) => (),
                 Err(err) => console.error(format!("Error while discovering modules: {}", err)),
             }
-            task_manager.do_send(task_manager::message::DiscoveryDone);
+            event_bus.publish(DiscoveryDoneEvent::new(
+                dir.clone(),
+                Some("DiscoveryActor".to_string()),
+            ));
             discovery.do_send(Stop);
         }
         .in_current_span();
@@ -89,7 +92,7 @@ impl<A: TaskAction + 'static> Actor for DiscoveryActor<A> {
     }
 }
 
-impl<A: TaskAction + 'static> Handler<Stop> for DiscoveryActor<A> {
+impl Handler<Stop> for DiscoveryActor {
     type Result = ();
 
     fn handle(&mut self, msg: Stop, ctx: &mut Self::Context) -> Self::Result {

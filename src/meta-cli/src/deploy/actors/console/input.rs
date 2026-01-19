@@ -4,10 +4,9 @@ use crate::interlude::*;
 
 use std::borrow::Cow;
 
-use actix::Addr;
 use owo_colors::OwoColorize;
 
-use crate::deploy::actors::console::{Console, ConsoleActor};
+use crate::deploy::actors::console::{Console, ConsoleHandle};
 
 pub struct OptionLabel<'a> {
     primary: Cow<'a, str>,
@@ -34,13 +33,13 @@ pub trait SelectOption<Value>: std::fmt::Debug {
 }
 
 pub struct Select {
-    console: Addr<ConsoleActor>,
+    console: ConsoleHandle,
     prompt: String,
     max_retry_count: usize,
 }
 
 impl Select {
-    pub fn new(console: Addr<ConsoleActor>, prompt: String) -> Self {
+    pub fn new(console: ConsoleHandle, prompt: String) -> Self {
         Self {
             console,
             prompt,
@@ -93,13 +92,13 @@ impl Select {
 }
 
 pub struct Confirm {
-    console: Addr<ConsoleActor>,
+    console: ConsoleHandle,
     prompt: String,
     max_retry_count: usize,
 }
 
 impl Confirm {
-    pub fn new(console: Addr<ConsoleActor>, prompt: String) -> Self {
+    pub fn new(console: ConsoleHandle, prompt: String) -> Self {
         Self {
             console,
             prompt,

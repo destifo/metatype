@@ -3,7 +3,7 @@
 
 use super::{Action, ConfigArgs, NodeArgs};
 use crate::config::{Config, PathOption};
-use crate::deploy::actors::console::ConsoleActor;
+use crate::deploy::actors::console::ConsoleHandle;
 use crate::deploy::actors::task::list::{ListAction, ListActionGenerator};
 use crate::deploy::actors::task::TaskFinishStatus;
 use crate::deploy::actors::task_manager::{Report, StopReason, TaskManagerInit, TaskSource};
@@ -51,7 +51,7 @@ impl Action for List {
 
         let task_source = TaskSource::Discovery(dir.clone().into());
 
-        let console = ConsoleActor::new(Arc::clone(&config)).start();
+        let console = ConsoleHandle::start(Arc::clone(&config));
 
         let action_generator = ListActionGenerator::new(
             node.prefix.clone(),

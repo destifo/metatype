@@ -9,7 +9,7 @@ use crate::config::PathOption;
 use crate::deploy::actors::task::serialize::{SerializeAction, SerializeActionGenerator};
 use crate::deploy::actors::task_manager::{TaskManagerInit, TaskSource};
 use crate::interlude::*;
-use crate::{config::Config, deploy::actors::console::ConsoleActor};
+use crate::{config::Config, deploy::actors::console::ConsoleHandle};
 use actix::Actor;
 use clap::Parser;
 use dashmap::DashMap;
@@ -223,7 +223,7 @@ async fn load_tg_at(
     name: Option<&str>,
     dir: &Path,
 ) -> anyhow::Result<Arc<Typegraph>> {
-    let console = ConsoleActor::new(Arc::clone(&config)).start();
+    let console = ConsoleHandle::start(Arc::clone(&config));
 
     let config_dir: Arc<Path> = config.dir().unwrap_or_log().into();
     let init = TaskManagerInit::<SerializeAction>::new(

@@ -744,69 +744,6 @@
               ],
               "allowedBuildDeps": "bciqcxgg7xr5sqlqof6jj6wtw4ydcqwhhygum37poi3j5c5nlb3gyfty"
             },
-            "ghjkEnvProvInstSet___dev": {
-              "installs": [
-                "bciqbhs74k2k7kspxinb7gjxd45fr2exdaveq524au5kagl2dajknzfi",
-                "bciqddbofgzguxpsvy67rwgcjm36ceasyizithd6lradvfufnuakrlsi",
-                "bciqohfgwwxwi3qwjul3bk76cq4c555nf2jjpsx2zbq5ao5q5sdiudga",
-                "bciqhgsbay6hm77nznkdsak3svpzxo3zweuuvzyljlgicnzhfjchj4ga",
-                "bciqp7xhthv3hu3dlqfrleafd3tckipcl6oynscs6l2z3rl6easmufji",
-                "bciqlfzvokqyfirqfpd7prlv5eyn5kojow3dnpfcefh4rrlf3fpnpkkq",
-                "bciqbvzgvdkw44lipidgrlwbtlohygyzqh4iykf2umtwwszlixlfgbwq",
-                "bciqliqxces7iqoi2k5baaxnsmrps42xlz5aimxfjovmxhyutxsg2cri",
-                "bciqbzmzuoiw623qc65dj3lzz6yzp53zscd3mssqqmnoz36d6z7hlmyi",
-                "bciqhl5spkzrdimpzb5j7q72fqnpmrowodztrgdwyltbbwujx6jvgppy",
-                "bciqdptevfz76tnfdrfbyqdif6pbo7bp3ptg3jdup2y6risbhk7lxf2q",
-                "bciqi6dbmqamwksc2jxrxohd622zrtykz63xyulne56mfzldsamapz6y",
-                "bciqbu23dpcs2grmvazsomktskzzrrtpqn2l2qncsbhc7dwjbjh46cqa",
-                "bciqkrrumyrcl2phqv6prvap6iu4fxg5f2q2iih3jynn7qpcrtpnfwii",
-                "bciqanif5dyndywg2e2dadnhibcuhlae6xcakcw4q6fuuzybm73bffiq",
-                "bciqaaff7qd425xqmqox3xdrvopnd5azuh3qltqs52cxsxsh6ftwzbri",
-                "bciqmuderdsjkzfy5woln54w5onbq4s7nmsuzihj2hbypvruyblb2e3i",
-                "bciqboliu3ssusex42rkpizocqkaowymnhffg37ata76jqjnxrohuhna",
-                "bciqmpg7w66s5y72udzze3z3q3ois74s4w6iq3bwbmlflm6qlv3if3li",
-                "bciqfc6ihx4o5lfshfpwl4julvk2seay3a7gp3xlafun4ooacuy2zwha",
-                "bciqfkflmx4umairrynu3fembcezejwfzyccug4t5cuegmhwzhzsb2sq",
-                "bciqhrg4dgdehhneztqmarmzoermq2smg6cvwef4uxziziln4bzkjaty"
-              ],
-              "allowedBuildDeps": "bciqcxgg7xr5sqlqof6jj6wtw4ydcqwhhygum37poi3j5c5nlb3gyfty"
-            },
-            "ghjkEnvProvInstSet___oci": {
-              "installs": [
-                "bciqbhs74k2k7kspxinb7gjxd45fr2exdaveq524au5kagl2dajknzfi",
-                "bciqhl5spkzrdimpzb5j7q72fqnpmrowodztrgdwyltbbwujx6jvgppy",
-                "bciqdptevfz76tnfdrfbyqdif6pbo7bp3ptg3jdup2y6risbhk7lxf2q",
-                "bciqi6dbmqamwksc2jxrxohd622zrtykz63xyulne56mfzldsamapz6y",
-                "bciqmpg7w66s5y72udzze3z3q3ois74s4w6iq3bwbmlflm6qlv3if3li",
-                "bciqfc6ihx4o5lfshfpwl4julvk2seay3a7gp3xlafun4ooacuy2zwha",
-                "bciqfkflmx4umairrynu3fembcezejwfzyccug4t5cuegmhwzhzsb2sq",
-                "bciqhrg4dgdehhneztqmarmzoermq2smg6cvwef4uxziziln4bzkjaty"
-              ],
-              "allowedBuildDeps": "bciqcxgg7xr5sqlqof6jj6wtw4ydcqwhhygum37poi3j5c5nlb3gyfty"
-            },
-            "ghjkEnvProvInstSet___ci": {
-              "installs": [
-                "bciqbhs74k2k7kspxinb7gjxd45fr2exdaveq524au5kagl2dajknzfi",
-                "bciqlfzvokqyfirqfpd7prlv5eyn5kojow3dnpfcefh4rrlf3fpnpkkq",
-                "bciqbvzgvdkw44lipidgrlwbtlohygyzqh4iykf2umtwwszlixlfgbwq",
-                "bciqliqxces7iqoi2k5baaxnsmrps42xlz5aimxfjovmxhyutxsg2cri",
-                "bciqbzmzuoiw623qc65dj3lzz6yzp53zscd3mssqqmnoz36d6z7hlmyi",
-                "bciqhl5spkzrdimpzb5j7q72fqnpmrowodztrgdwyltbbwujx6jvgppy",
-                "bciqdptevfz76tnfdrfbyqdif6pbo7bp3ptg3jdup2y6risbhk7lxf2q",
-                "bciqi6dbmqamwksc2jxrxohd622zrtykz63xyulne56mfzldsamapz6y",
-                "bciqbu23dpcs2grmvazsomktskzzrrtpqn2l2qncsbhc7dwjbjh46cqa",
-                "bciqkrrumyrcl2phqv6prvap6iu4fxg5f2q2iih3jynn7qpcrtpnfwii",
-                "bciqanif5dyndywg2e2dadnhibcuhlae6xcakcw4q6fuuzybm73bffiq",
-                "bciqaaff7qd425xqmqox3xdrvopnd5azuh3qltqs52cxsxsh6ftwzbri",
-                "bciqmuderdsjkzfy5woln54w5onbq4s7nmsuzihj2hbypvruyblb2e3i",
-                "bciqboliu3ssusex42rkpizocqkaowymnhffg37ata76jqjnxrohuhna",
-                "bciqmpg7w66s5y72udzze3z3q3ois74s4w6iq3bwbmlflm6qlv3if3li",
-                "bciqfc6ihx4o5lfshfpwl4julvk2seay3a7gp3xlafun4ooacuy2zwha",
-                "bciqfkflmx4umairrynu3fembcezejwfzyccug4t5cuegmhwzhzsb2sq",
-                "bciqhrg4dgdehhneztqmarmzoermq2smg6cvwef4uxziziln4bzkjaty"
-              ],
-              "allowedBuildDeps": "bciqcxgg7xr5sqlqof6jj6wtw4ydcqwhhygum37poi3j5c5nlb3gyfty"
-            },
             "ghjkEnvProvInstSet____ecma": {
               "installs": [
                 "bciqaaff7qd425xqmqox3xdrvopnd5azuh3qltqs52cxsxsh6ftwzbri",
@@ -832,6 +769,54 @@
                 "bciqfkflmx4umairrynu3fembcezejwfzyccug4t5cuegmhwzhzsb2sq",
                 "bciqhrg4dgdehhneztqmarmzoermq2smg6cvwef4uxziziln4bzkjaty",
                 "bciqi6dbmqamwksc2jxrxohd622zrtykz63xyulne56mfzldsamapz6y"
+              ],
+              "allowedBuildDeps": "bciqcxgg7xr5sqlqof6jj6wtw4ydcqwhhygum37poi3j5c5nlb3gyfty"
+            },
+            "ghjkEnvProvInstSet___ci": {
+              "installs": [
+                "bciqlfzvokqyfirqfpd7prlv5eyn5kojow3dnpfcefh4rrlf3fpnpkkq",
+                "bciqbvzgvdkw44lipidgrlwbtlohygyzqh4iykf2umtwwszlixlfgbwq",
+                "bciqliqxces7iqoi2k5baaxnsmrps42xlz5aimxfjovmxhyutxsg2cri",
+                "bciqbzmzuoiw623qc65dj3lzz6yzp53zscd3mssqqmnoz36d6z7hlmyi",
+                "bciqhl5spkzrdimpzb5j7q72fqnpmrowodztrgdwyltbbwujx6jvgppy",
+                "bciqdptevfz76tnfdrfbyqdif6pbo7bp3ptg3jdup2y6risbhk7lxf2q",
+                "bciqi6dbmqamwksc2jxrxohd622zrtykz63xyulne56mfzldsamapz6y",
+                "bciqbu23dpcs2grmvazsomktskzzrrtpqn2l2qncsbhc7dwjbjh46cqa",
+                "bciqkrrumyrcl2phqv6prvap6iu4fxg5f2q2iih3jynn7qpcrtpnfwii",
+                "bciqanif5dyndywg2e2dadnhibcuhlae6xcakcw4q6fuuzybm73bffiq",
+                "bciqaaff7qd425xqmqox3xdrvopnd5azuh3qltqs52cxsxsh6ftwzbri",
+                "bciqmuderdsjkzfy5woln54w5onbq4s7nmsuzihj2hbypvruyblb2e3i",
+                "bciqboliu3ssusex42rkpizocqkaowymnhffg37ata76jqjnxrohuhna",
+                "bciqmpg7w66s5y72udzze3z3q3ois74s4w6iq3bwbmlflm6qlv3if3li",
+                "bciqfc6ihx4o5lfshfpwl4julvk2seay3a7gp3xlafun4ooacuy2zwha",
+                "bciqfkflmx4umairrynu3fembcezejwfzyccug4t5cuegmhwzhzsb2sq",
+                "bciqhrg4dgdehhneztqmarmzoermq2smg6cvwef4uxziziln4bzkjaty"
+              ],
+              "allowedBuildDeps": "bciqcxgg7xr5sqlqof6jj6wtw4ydcqwhhygum37poi3j5c5nlb3gyfty"
+            },
+            "ghjkEnvProvInstSet___dev": {
+              "installs": [
+                "bciqddbofgzguxpsvy67rwgcjm36ceasyizithd6lradvfufnuakrlsi",
+                "bciqohfgwwxwi3qwjul3bk76cq4c555nf2jjpsx2zbq5ao5q5sdiudga",
+                "bciqhgsbay6hm77nznkdsak3svpzxo3zweuuvzyljlgicnzhfjchj4ga",
+                "bciqp7xhthv3hu3dlqfrleafd3tckipcl6oynscs6l2z3rl6easmufji",
+                "bciqlfzvokqyfirqfpd7prlv5eyn5kojow3dnpfcefh4rrlf3fpnpkkq",
+                "bciqbvzgvdkw44lipidgrlwbtlohygyzqh4iykf2umtwwszlixlfgbwq",
+                "bciqliqxces7iqoi2k5baaxnsmrps42xlz5aimxfjovmxhyutxsg2cri",
+                "bciqbzmzuoiw623qc65dj3lzz6yzp53zscd3mssqqmnoz36d6z7hlmyi",
+                "bciqhl5spkzrdimpzb5j7q72fqnpmrowodztrgdwyltbbwujx6jvgppy",
+                "bciqdptevfz76tnfdrfbyqdif6pbo7bp3ptg3jdup2y6risbhk7lxf2q",
+                "bciqi6dbmqamwksc2jxrxohd622zrtykz63xyulne56mfzldsamapz6y",
+                "bciqbu23dpcs2grmvazsomktskzzrrtpqn2l2qncsbhc7dwjbjh46cqa",
+                "bciqkrrumyrcl2phqv6prvap6iu4fxg5f2q2iih3jynn7qpcrtpnfwii",
+                "bciqanif5dyndywg2e2dadnhibcuhlae6xcakcw4q6fuuzybm73bffiq",
+                "bciqaaff7qd425xqmqox3xdrvopnd5azuh3qltqs52cxsxsh6ftwzbri",
+                "bciqmuderdsjkzfy5woln54w5onbq4s7nmsuzihj2hbypvruyblb2e3i",
+                "bciqboliu3ssusex42rkpizocqkaowymnhffg37ata76jqjnxrohuhna",
+                "bciqmpg7w66s5y72udzze3z3q3ois74s4w6iq3bwbmlflm6qlv3if3li",
+                "bciqfc6ihx4o5lfshfpwl4julvk2seay3a7gp3xlafun4ooacuy2zwha",
+                "bciqfkflmx4umairrynu3fembcezejwfzyccug4t5cuegmhwzhzsb2sq",
+                "bciqhrg4dgdehhneztqmarmzoermq2smg6cvwef4uxziziln4bzkjaty"
               ],
               "allowedBuildDeps": "bciqcxgg7xr5sqlqof6jj6wtw4ydcqwhhygum37poi3j5c5nlb3gyfty"
             },
@@ -930,6 +915,18 @@
                 "bciqbu23dpcs2grmvazsomktskzzrrtpqn2l2qncsbhc7dwjbjh46cqa",
                 "bciqkrrumyrcl2phqv6prvap6iu4fxg5f2q2iih3jynn7qpcrtpnfwii",
                 "bciqanif5dyndywg2e2dadnhibcuhlae6xcakcw4q6fuuzybm73bffiq"
+              ],
+              "allowedBuildDeps": "bciqcxgg7xr5sqlqof6jj6wtw4ydcqwhhygum37poi3j5c5nlb3gyfty"
+            },
+            "ghjkEnvProvInstSet___oci": {
+              "installs": [
+                "bciqhl5spkzrdimpzb5j7q72fqnpmrowodztrgdwyltbbwujx6jvgppy",
+                "bciqdptevfz76tnfdrfbyqdif6pbo7bp3ptg3jdup2y6risbhk7lxf2q",
+                "bciqi6dbmqamwksc2jxrxohd622zrtykz63xyulne56mfzldsamapz6y",
+                "bciqmpg7w66s5y72udzze3z3q3ois74s4w6iq3bwbmlflm6qlv3if3li",
+                "bciqfc6ihx4o5lfshfpwl4julvk2seay3a7gp3xlafun4ooacuy2zwha",
+                "bciqfkflmx4umairrynu3fembcezejwfzyccug4t5cuegmhwzhzsb2sq",
+                "bciqhrg4dgdehhneztqmarmzoermq2smg6cvwef4uxziziln4bzkjaty"
               ],
               "allowedBuildDeps": "bciqcxgg7xr5sqlqof6jj6wtw4ydcqwhhygum37poi3j5c5nlb3gyfty"
             }
@@ -2413,14 +2410,18 @@
         },
         "packageName": "cmake"
       },
-      "bciqbhs74k2k7kspxinb7gjxd45fr2exdaveq524au5kagl2dajknzfi": {
-        "version": "v2.4.0",
+      "bciqaaff7qd425xqmqox3xdrvopnd5azuh3qltqs52cxsxsh6ftwzbri": {
+        "version": "20.8.0",
         "port": {
           "ty": "denoWorker@v1",
-          "name": "mold_ghrel",
+          "name": "node_org",
           "platforms": [
             "aarch64-linux",
-            "x86_64-linux"
+            "x86_64-linux",
+            "aarch64-darwin",
+            "x86_64-darwin",
+            "aarch64-windows",
+            "x86_64-windows"
           ],
           "version": "0.1.0",
           "buildDeps": [
@@ -2428,14 +2429,14 @@
               "name": "tar_aa"
             }
           ],
-          "moduleSpecifier": "https://raw.githubusercontent.com/metatypedev/ghjk/v0.3.1-rc.2/ports/mold.ts"
-        },
-        "replaceLd": true
+          "moduleSpecifier": "https://raw.githubusercontent.com/metatypedev/ghjk/v0.3.1-rc.2/ports/node.ts"
+        }
       },
-      "bciqddbofgzguxpsvy67rwgcjm36ceasyizithd6lradvfufnuakrlsi": {
+      "bciqmuderdsjkzfy5woln54w5onbq4s7nmsuzihj2hbypvruyblb2e3i": {
+        "version": "v10.6.4",
         "port": {
           "ty": "denoWorker@v1",
-          "name": "act_ghrel",
+          "name": "pnpm_ghrel",
           "platforms": [
             "aarch64-linux",
             "x86_64-linux",
@@ -2445,13 +2446,14 @@
             "x86_64-windows"
           ],
           "version": "0.1.0",
-          "moduleSpecifier": "https://raw.githubusercontent.com/metatypedev/ghjk/v0.3.1-rc.2/ports/act.ts"
+          "moduleSpecifier": "https://raw.githubusercontent.com/metatypedev/ghjk/v0.3.1-rc.2/ports/pnpm.ts"
         }
       },
-      "bciqohfgwwxwi3qwjul3bk76cq4c555nf2jjpsx2zbq5ao5q5sdiudga": {
+      "bciqboliu3ssusex42rkpizocqkaowymnhffg37ata76jqjnxrohuhna": {
+        "version": "10.0.1",
         "port": {
           "ty": "denoWorker@v1",
-          "name": "cargobi_cratesio",
+          "name": "npmi_npm",
           "platforms": [
             "x86_64-linux",
             "aarch64-linux",
@@ -2475,222 +2477,12 @@
           "version": "0.1.0",
           "buildDeps": [
             {
-              "name": "cargo_binstall_ghrel"
-            },
-            {
-              "name": "rust_rustup"
+              "name": "node_org"
             }
           ],
-          "moduleSpecifier": "https://raw.githubusercontent.com/metatypedev/ghjk/v0.3.1-rc.2/ports/cargobi.ts"
+          "moduleSpecifier": "https://raw.githubusercontent.com/metatypedev/ghjk/v0.3.1-rc.2/ports/npmi.ts"
         },
-        "crateName": "whiz",
-        "locked": true
-      },
-      "bciqhgsbay6hm77nznkdsak3svpzxo3zweuuvzyljlgicnzhfjchj4ga": {
-        "port": {
-          "ty": "denoWorker@v1",
-          "name": "cargobi_cratesio",
-          "platforms": [
-            "x86_64-linux",
-            "aarch64-linux",
-            "x86_64-darwin",
-            "aarch64-darwin",
-            "x86_64-windows",
-            "aarch64-windows",
-            "x86_64-freebsd",
-            "aarch64-freebsd",
-            "x86_64-netbsd",
-            "aarch64-netbsd",
-            "x86_64-aix",
-            "aarch64-aix",
-            "x86_64-solaris",
-            "aarch64-solaris",
-            "x86_64-illumos",
-            "aarch64-illumos",
-            "x86_64-android",
-            "aarch64-android"
-          ],
-          "version": "0.1.0",
-          "buildDeps": [
-            {
-              "name": "cargo_binstall_ghrel"
-            },
-            {
-              "name": "rust_rustup"
-            }
-          ],
-          "moduleSpecifier": "https://raw.githubusercontent.com/metatypedev/ghjk/v0.3.1-rc.2/ports/cargobi.ts"
-        },
-        "crateName": "wit-deps-cli",
-        "locked": true
-      },
-      "bciqp7xhthv3hu3dlqfrleafd3tckipcl6oynscs6l2z3rl6easmufji": {
-        "port": {
-          "ty": "denoWorker@v1",
-          "name": "cargobi_cratesio",
-          "platforms": [
-            "x86_64-linux",
-            "aarch64-linux",
-            "x86_64-darwin",
-            "aarch64-darwin",
-            "x86_64-windows",
-            "aarch64-windows",
-            "x86_64-freebsd",
-            "aarch64-freebsd",
-            "x86_64-netbsd",
-            "aarch64-netbsd",
-            "x86_64-aix",
-            "aarch64-aix",
-            "x86_64-solaris",
-            "aarch64-solaris",
-            "x86_64-illumos",
-            "aarch64-illumos",
-            "x86_64-android",
-            "aarch64-android"
-          ],
-          "version": "0.1.0",
-          "buildDeps": [
-            {
-              "name": "cargo_binstall_ghrel"
-            },
-            {
-              "name": "rust_rustup"
-            }
-          ],
-          "moduleSpecifier": "https://raw.githubusercontent.com/metatypedev/ghjk/v0.3.1-rc.2/ports/cargobi.ts"
-        },
-        "crateName": "git-cliff",
-        "locked": true
-      },
-      "bciqlfzvokqyfirqfpd7prlv5eyn5kojow3dnpfcefh4rrlf3fpnpkkq": {
-        "version": "3.7.1",
-        "port": {
-          "ty": "denoWorker@v1",
-          "name": "pipi_pypi",
-          "platforms": [
-            "x86_64-linux",
-            "aarch64-linux",
-            "x86_64-darwin",
-            "aarch64-darwin",
-            "x86_64-windows",
-            "aarch64-windows",
-            "x86_64-freebsd",
-            "aarch64-freebsd",
-            "x86_64-netbsd",
-            "aarch64-netbsd",
-            "x86_64-aix",
-            "aarch64-aix",
-            "x86_64-solaris",
-            "aarch64-solaris",
-            "x86_64-illumos",
-            "aarch64-illumos",
-            "x86_64-android",
-            "aarch64-android"
-          ],
-          "version": "0.1.0",
-          "buildDeps": [
-            {
-              "name": "cpy_bs_ghrel"
-            }
-          ],
-          "moduleSpecifier": "https://raw.githubusercontent.com/metatypedev/ghjk/v0.3.1-rc.2/ports/pipi.ts"
-        },
-        "packageName": "pre-commit"
-      },
-      "bciqbvzgvdkw44lipidgrlwbtlohygyzqh4iykf2umtwwszlixlfgbwq": {
-        "version": "v0.13.1",
-        "port": {
-          "ty": "denoWorker@v1",
-          "name": "temporal_cli_ghrel",
-          "platforms": [
-            "aarch64-linux",
-            "x86_64-linux",
-            "aarch64-darwin",
-            "x86_64-darwin",
-            "aarch64-windows",
-            "x86_64-windows"
-          ],
-          "version": "0.1.0",
-          "moduleSpecifier": "https://raw.githubusercontent.com/metatypedev/ghjk/v0.3.1-rc.2/ports/temporal_cli.ts"
-        }
-      },
-      "bciqliqxces7iqoi2k5baaxnsmrps42xlz5aimxfjovmxhyutxsg2cri": {
-        "version": "1.33.0",
-        "port": {
-          "ty": "denoWorker@v1",
-          "name": "cargobi_cratesio",
-          "platforms": [
-            "x86_64-linux",
-            "aarch64-linux",
-            "x86_64-darwin",
-            "aarch64-darwin",
-            "x86_64-windows",
-            "aarch64-windows",
-            "x86_64-freebsd",
-            "aarch64-freebsd",
-            "x86_64-netbsd",
-            "aarch64-netbsd",
-            "x86_64-aix",
-            "aarch64-aix",
-            "x86_64-solaris",
-            "aarch64-solaris",
-            "x86_64-illumos",
-            "aarch64-illumos",
-            "x86_64-android",
-            "aarch64-android"
-          ],
-          "version": "0.1.0",
-          "buildDeps": [
-            {
-              "name": "cargo_binstall_ghrel"
-            },
-            {
-              "name": "rust_rustup"
-            }
-          ],
-          "moduleSpecifier": "https://raw.githubusercontent.com/metatypedev/ghjk/v0.3.1-rc.2/ports/cargobi.ts"
-        },
-        "crateName": "cargo-insta",
-        "locked": true
-      },
-      "bciqbzmzuoiw623qc65dj3lzz6yzp53zscd3mssqqmnoz36d6z7hlmyi": {
-        "version": "0.2.5",
-        "port": {
-          "ty": "denoWorker@v1",
-          "name": "cargobi_cratesio",
-          "platforms": [
-            "x86_64-linux",
-            "aarch64-linux",
-            "x86_64-darwin",
-            "aarch64-darwin",
-            "x86_64-windows",
-            "aarch64-windows",
-            "x86_64-freebsd",
-            "aarch64-freebsd",
-            "x86_64-netbsd",
-            "aarch64-netbsd",
-            "x86_64-aix",
-            "aarch64-aix",
-            "x86_64-solaris",
-            "aarch64-solaris",
-            "x86_64-illumos",
-            "aarch64-illumos",
-            "x86_64-android",
-            "aarch64-android"
-          ],
-          "version": "0.1.0",
-          "buildDeps": [
-            {
-              "name": "cargo_binstall_ghrel"
-            },
-            {
-              "name": "rust_rustup"
-            }
-          ],
-          "moduleSpecifier": "https://raw.githubusercontent.com/metatypedev/ghjk/v0.3.1-rc.2/ports/cargobi.ts"
-        },
-        "crateName": "cross",
-        "locked": true
+        "packageName": "node-gyp"
       },
       "bciqbu23dpcs2grmvazsomktskzzrrtpqn2l2qncsbhc7dwjbjh46cqa": {
         "version": "3.9.23",
@@ -2787,80 +2579,6 @@
           "moduleSpecifier": "https://raw.githubusercontent.com/metatypedev/ghjk/v0.3.1-rc.2/ports/pipi.ts"
         },
         "packageName": "poetry"
-      },
-      "bciqaaff7qd425xqmqox3xdrvopnd5azuh3qltqs52cxsxsh6ftwzbri": {
-        "version": "20.8.0",
-        "port": {
-          "ty": "denoWorker@v1",
-          "name": "node_org",
-          "platforms": [
-            "aarch64-linux",
-            "x86_64-linux",
-            "aarch64-darwin",
-            "x86_64-darwin",
-            "aarch64-windows",
-            "x86_64-windows"
-          ],
-          "version": "0.1.0",
-          "buildDeps": [
-            {
-              "name": "tar_aa"
-            }
-          ],
-          "moduleSpecifier": "https://raw.githubusercontent.com/metatypedev/ghjk/v0.3.1-rc.2/ports/node.ts"
-        }
-      },
-      "bciqmuderdsjkzfy5woln54w5onbq4s7nmsuzihj2hbypvruyblb2e3i": {
-        "version": "v10.6.4",
-        "port": {
-          "ty": "denoWorker@v1",
-          "name": "pnpm_ghrel",
-          "platforms": [
-            "aarch64-linux",
-            "x86_64-linux",
-            "aarch64-darwin",
-            "x86_64-darwin",
-            "aarch64-windows",
-            "x86_64-windows"
-          ],
-          "version": "0.1.0",
-          "moduleSpecifier": "https://raw.githubusercontent.com/metatypedev/ghjk/v0.3.1-rc.2/ports/pnpm.ts"
-        }
-      },
-      "bciqboliu3ssusex42rkpizocqkaowymnhffg37ata76jqjnxrohuhna": {
-        "version": "10.0.1",
-        "port": {
-          "ty": "denoWorker@v1",
-          "name": "npmi_npm",
-          "platforms": [
-            "x86_64-linux",
-            "aarch64-linux",
-            "x86_64-darwin",
-            "aarch64-darwin",
-            "x86_64-windows",
-            "aarch64-windows",
-            "x86_64-freebsd",
-            "aarch64-freebsd",
-            "x86_64-netbsd",
-            "aarch64-netbsd",
-            "x86_64-aix",
-            "aarch64-aix",
-            "x86_64-solaris",
-            "aarch64-solaris",
-            "x86_64-illumos",
-            "aarch64-illumos",
-            "x86_64-android",
-            "aarch64-android"
-          ],
-          "version": "0.1.0",
-          "buildDeps": [
-            {
-              "name": "node_org"
-            }
-          ],
-          "moduleSpecifier": "https://raw.githubusercontent.com/metatypedev/ghjk/v0.3.1-rc.2/ports/npmi.ts"
-        },
-        "packageName": "node-gyp"
       },
       "bciqmpg7w66s5y72udzze3z3q3ois74s4w6iq3bwbmlflm6qlv3if3li": {
         "version": "0.116.1",
@@ -3009,6 +2727,266 @@
           "moduleSpecifier": "https://raw.githubusercontent.com/metatypedev/ghjk/v0.3.1-rc.2/ports/npmi.ts"
         },
         "packageName": "@bytecodealliance/jco"
+      },
+      "bciqlfzvokqyfirqfpd7prlv5eyn5kojow3dnpfcefh4rrlf3fpnpkkq": {
+        "version": "3.7.1",
+        "port": {
+          "ty": "denoWorker@v1",
+          "name": "pipi_pypi",
+          "platforms": [
+            "x86_64-linux",
+            "aarch64-linux",
+            "x86_64-darwin",
+            "aarch64-darwin",
+            "x86_64-windows",
+            "aarch64-windows",
+            "x86_64-freebsd",
+            "aarch64-freebsd",
+            "x86_64-netbsd",
+            "aarch64-netbsd",
+            "x86_64-aix",
+            "aarch64-aix",
+            "x86_64-solaris",
+            "aarch64-solaris",
+            "x86_64-illumos",
+            "aarch64-illumos",
+            "x86_64-android",
+            "aarch64-android"
+          ],
+          "version": "0.1.0",
+          "buildDeps": [
+            {
+              "name": "cpy_bs_ghrel"
+            }
+          ],
+          "moduleSpecifier": "https://raw.githubusercontent.com/metatypedev/ghjk/v0.3.1-rc.2/ports/pipi.ts"
+        },
+        "packageName": "pre-commit"
+      },
+      "bciqbvzgvdkw44lipidgrlwbtlohygyzqh4iykf2umtwwszlixlfgbwq": {
+        "version": "v0.13.1",
+        "port": {
+          "ty": "denoWorker@v1",
+          "name": "temporal_cli_ghrel",
+          "platforms": [
+            "aarch64-linux",
+            "x86_64-linux",
+            "aarch64-darwin",
+            "x86_64-darwin",
+            "aarch64-windows",
+            "x86_64-windows"
+          ],
+          "version": "0.1.0",
+          "moduleSpecifier": "https://raw.githubusercontent.com/metatypedev/ghjk/v0.3.1-rc.2/ports/temporal_cli.ts"
+        }
+      },
+      "bciqliqxces7iqoi2k5baaxnsmrps42xlz5aimxfjovmxhyutxsg2cri": {
+        "version": "1.33.0",
+        "port": {
+          "ty": "denoWorker@v1",
+          "name": "cargobi_cratesio",
+          "platforms": [
+            "x86_64-linux",
+            "aarch64-linux",
+            "x86_64-darwin",
+            "aarch64-darwin",
+            "x86_64-windows",
+            "aarch64-windows",
+            "x86_64-freebsd",
+            "aarch64-freebsd",
+            "x86_64-netbsd",
+            "aarch64-netbsd",
+            "x86_64-aix",
+            "aarch64-aix",
+            "x86_64-solaris",
+            "aarch64-solaris",
+            "x86_64-illumos",
+            "aarch64-illumos",
+            "x86_64-android",
+            "aarch64-android"
+          ],
+          "version": "0.1.0",
+          "buildDeps": [
+            {
+              "name": "cargo_binstall_ghrel"
+            },
+            {
+              "name": "rust_rustup"
+            }
+          ],
+          "moduleSpecifier": "https://raw.githubusercontent.com/metatypedev/ghjk/v0.3.1-rc.2/ports/cargobi.ts"
+        },
+        "crateName": "cargo-insta",
+        "locked": true
+      },
+      "bciqbzmzuoiw623qc65dj3lzz6yzp53zscd3mssqqmnoz36d6z7hlmyi": {
+        "version": "0.2.5",
+        "port": {
+          "ty": "denoWorker@v1",
+          "name": "cargobi_cratesio",
+          "platforms": [
+            "x86_64-linux",
+            "aarch64-linux",
+            "x86_64-darwin",
+            "aarch64-darwin",
+            "x86_64-windows",
+            "aarch64-windows",
+            "x86_64-freebsd",
+            "aarch64-freebsd",
+            "x86_64-netbsd",
+            "aarch64-netbsd",
+            "x86_64-aix",
+            "aarch64-aix",
+            "x86_64-solaris",
+            "aarch64-solaris",
+            "x86_64-illumos",
+            "aarch64-illumos",
+            "x86_64-android",
+            "aarch64-android"
+          ],
+          "version": "0.1.0",
+          "buildDeps": [
+            {
+              "name": "cargo_binstall_ghrel"
+            },
+            {
+              "name": "rust_rustup"
+            }
+          ],
+          "moduleSpecifier": "https://raw.githubusercontent.com/metatypedev/ghjk/v0.3.1-rc.2/ports/cargobi.ts"
+        },
+        "crateName": "cross",
+        "locked": true
+      },
+      "bciqddbofgzguxpsvy67rwgcjm36ceasyizithd6lradvfufnuakrlsi": {
+        "port": {
+          "ty": "denoWorker@v1",
+          "name": "act_ghrel",
+          "platforms": [
+            "aarch64-linux",
+            "x86_64-linux",
+            "aarch64-darwin",
+            "x86_64-darwin",
+            "aarch64-windows",
+            "x86_64-windows"
+          ],
+          "version": "0.1.0",
+          "moduleSpecifier": "https://raw.githubusercontent.com/metatypedev/ghjk/v0.3.1-rc.2/ports/act.ts"
+        }
+      },
+      "bciqohfgwwxwi3qwjul3bk76cq4c555nf2jjpsx2zbq5ao5q5sdiudga": {
+        "port": {
+          "ty": "denoWorker@v1",
+          "name": "cargobi_cratesio",
+          "platforms": [
+            "x86_64-linux",
+            "aarch64-linux",
+            "x86_64-darwin",
+            "aarch64-darwin",
+            "x86_64-windows",
+            "aarch64-windows",
+            "x86_64-freebsd",
+            "aarch64-freebsd",
+            "x86_64-netbsd",
+            "aarch64-netbsd",
+            "x86_64-aix",
+            "aarch64-aix",
+            "x86_64-solaris",
+            "aarch64-solaris",
+            "x86_64-illumos",
+            "aarch64-illumos",
+            "x86_64-android",
+            "aarch64-android"
+          ],
+          "version": "0.1.0",
+          "buildDeps": [
+            {
+              "name": "cargo_binstall_ghrel"
+            },
+            {
+              "name": "rust_rustup"
+            }
+          ],
+          "moduleSpecifier": "https://raw.githubusercontent.com/metatypedev/ghjk/v0.3.1-rc.2/ports/cargobi.ts"
+        },
+        "crateName": "whiz",
+        "locked": true
+      },
+      "bciqhgsbay6hm77nznkdsak3svpzxo3zweuuvzyljlgicnzhfjchj4ga": {
+        "port": {
+          "ty": "denoWorker@v1",
+          "name": "cargobi_cratesio",
+          "platforms": [
+            "x86_64-linux",
+            "aarch64-linux",
+            "x86_64-darwin",
+            "aarch64-darwin",
+            "x86_64-windows",
+            "aarch64-windows",
+            "x86_64-freebsd",
+            "aarch64-freebsd",
+            "x86_64-netbsd",
+            "aarch64-netbsd",
+            "x86_64-aix",
+            "aarch64-aix",
+            "x86_64-solaris",
+            "aarch64-solaris",
+            "x86_64-illumos",
+            "aarch64-illumos",
+            "x86_64-android",
+            "aarch64-android"
+          ],
+          "version": "0.1.0",
+          "buildDeps": [
+            {
+              "name": "cargo_binstall_ghrel"
+            },
+            {
+              "name": "rust_rustup"
+            }
+          ],
+          "moduleSpecifier": "https://raw.githubusercontent.com/metatypedev/ghjk/v0.3.1-rc.2/ports/cargobi.ts"
+        },
+        "crateName": "wit-deps-cli",
+        "locked": true
+      },
+      "bciqp7xhthv3hu3dlqfrleafd3tckipcl6oynscs6l2z3rl6easmufji": {
+        "port": {
+          "ty": "denoWorker@v1",
+          "name": "cargobi_cratesio",
+          "platforms": [
+            "x86_64-linux",
+            "aarch64-linux",
+            "x86_64-darwin",
+            "aarch64-darwin",
+            "x86_64-windows",
+            "aarch64-windows",
+            "x86_64-freebsd",
+            "aarch64-freebsd",
+            "x86_64-netbsd",
+            "aarch64-netbsd",
+            "x86_64-aix",
+            "aarch64-aix",
+            "x86_64-solaris",
+            "aarch64-solaris",
+            "x86_64-illumos",
+            "aarch64-illumos",
+            "x86_64-android",
+            "aarch64-android"
+          ],
+          "version": "0.1.0",
+          "buildDeps": [
+            {
+              "name": "cargo_binstall_ghrel"
+            },
+            {
+              "name": "rust_rustup"
+            }
+          ],
+          "moduleSpecifier": "https://raw.githubusercontent.com/metatypedev/ghjk/v0.3.1-rc.2/ports/cargobi.ts"
+        },
+        "crateName": "git-cliff",
+        "locked": true
       },
       "bciqoz4vysr36rq2j3sxxgzjyguzyrymus4xoqztzj5iffind3aagtta": {
         "version": "3.7.1",

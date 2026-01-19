@@ -1,7 +1,7 @@
 // Copyright Metatype OÜ, licensed under the Mozilla Public License Version 2.0.
 // SPDX-License-Identifier: MPL-2.0
 
-use super::console::{Console, ConsoleActor};
+use super::console::{Console, ConsoleHandle};
 use crate::config::NodeConfig;
 use crate::interlude::*;
 use base64::engine::{general_purpose::STANDARD as b64, Engine};
@@ -26,7 +26,7 @@ pub mod message {
 }
 
 pub struct TypegateActor {
-    console: Addr<ConsoleActor>,
+    console: ConsoleHandle,
     #[allow(unused)]
     temp_dir: Option<tempfile::TempDir>,
 }
@@ -72,7 +72,7 @@ impl TypegateInit {
     }
 
     #[cfg_attr(feature = "tracing-instrument", tracing::instrument)]
-    pub async fn start(self, console: Addr<ConsoleActor>) -> Result<(Addr<TypegateActor>, u16)> {
+    pub async fn start(self, console: ConsoleHandle) -> Result<(Addr<TypegateActor>, u16)> {
         let (ready_tx, ready_rx) = oneshot::channel();
 
         let (temp_dir, temp_dir_handle) = if let Ok(temp_dir) = std::env::var("TMP_DIR") {
@@ -91,7 +91,7 @@ impl TypegateInit {
 
             TypegateActor {
                 temp_dir: temp_dir_handle,
-                console,
+                console: console.clone(),
             }
         });
 
@@ -266,7 +266,7 @@ impl<'a> LogRecord<'a> {
         })
     }
 
-    fn log(&self, console: &Addr<ConsoleActor>) {
+    fn log(&self, console: &ConsoleHandle) {
         // let prefix = format!("typegate ({})>", self.scope);
         let prefix = "typegate>";
         let prefix = prefix.dimmed();
@@ -297,7 +297,7 @@ impl TypegateActor {
     async fn read_stdout(
         addr: Addr<Self>,
         stdout: ChildStdout,
-        console: Addr<ConsoleActor>,
+        console: ConsoleHandle,
         ready_tx: oneshot::Sender<u16>,
     ) {
         let mut reader = BufReader::new(stdout).lines();
@@ -337,7 +337,7 @@ impl TypegateActor {
         addr.do_send(message::Stop);
     }
 
-    async fn read_stderr(addr: Addr<Self>, stderr: ChildStderr, console: Addr<ConsoleActor>) {
+    async fn read_stderr(addr: Addr<Self>, stderr: ChildStderr, console: ConsoleHandle) {
         let mut reader = BufReader::new(stderr).lines();
         let prefix = "typegate]".dimmed();
 
@@ -361,7 +361,7 @@ impl TypegateActor {
 
 struct ReadErrorHandler {
     source: &'static str,
-    console: Addr<ConsoleActor>,
+    console: ConsoleHandle,
 }
 
 impl ReadErrorHandler {
