@@ -761,4 +761,126 @@ mod tests {
         assert!(id2 > id1);
         assert!(id3 > id2);
     }
+
+    #[actix::test]
+    async fn test_event_bus_subscribe_and_unsubscribe() {
+        let event_bus = EventBusActor::with_default_config().start();
+
+        // Subscribe to an event type
+        let sub_id = event_bus
+            .send(Subscribe {
+                event_type: "test_event",
+                subscriber_id: "test_subscriber".to_string(),
+                type_id: TypeId::of::<()>(),
+            })
+            .await
+            .unwrap();
+
+        // Get stats to verify subscription
+        let stats = event_bus.send(GetStats).await.unwrap();
+        assert_eq!(stats.subscription_count, 1);
+        assert_eq!(stats.event_type_count, 1);
+
+        // Unsubscribe
+        let result = event_bus.send(Unsubscribe { subscription_id: sub_id }).await.unwrap();
+        assert!(result);
+
+        // Verify unsubscription
+        let stats = event_bus.send(GetStats).await.unwrap();
+        assert_eq!(stats.subscription_count, 0);
+    }
+
+    #[actix::test]
+    async fn test_event_bus_publish() {
+        let event_bus = EventBusActor::with_default_config().start();
+
+        // Subscribe first
+        let _ = event_bus
+            .send(Subscribe {
+                event_type: "test_event",
+                subscriber_id: "test_subscriber".to_string(),
+                type_id: TypeId::of::<()>(),
+            })
+            .await
+            .unwrap();
+
+        // Publish an event
+        let event_id = generate_event_id();
+        let result = event_bus
+            .send(PublishEvent {
+                event_type: "test_event",
+                event_id,
+                requires_ack: true,
+            })
+            .await
+            .unwrap();
+
+        assert_eq!(result.event_id, event_id);
+        assert_eq!(result.subscribers_notified, 1);
+
+        // Get stats to verify pending acks
+        let stats = event_bus.send(GetStats).await.unwrap();
+        assert_eq!(stats.pending_ack_count, 1);
+
+        // Send acknowledgment
+        event_bus.do_send(EventAck::success(event_id));
+
+        // Give the actor time to process the ack
+        tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+
+        // Verify ack was processed
+        let stats = event_bus.send(GetStats).await.unwrap();
+        assert_eq!(stats.pending_ack_count, 0);
+    }
+
+    #[actix::test]
+    async fn test_event_bus_multiple_subscribers() {
+        let event_bus = EventBusActor::with_default_config().start();
+
+        // Subscribe multiple subscribers to the same event type
+        let _ = event_bus
+            .send(Subscribe {
+                event_type: "shared_event",
+                subscriber_id: "subscriber1".to_string(),
+                type_id: TypeId::of::<()>(),
+            })
+            .await
+            .unwrap();
+
+        let _ = event_bus
+            .send(Subscribe {
+                event_type: "shared_event",
+                subscriber_id: "subscriber2".to_string(),
+                type_id: TypeId::of::<()>(),
+            })
+            .await
+            .unwrap();
+
+        let _ = event_bus
+            .send(Subscribe {
+                event_type: "shared_event",
+                subscriber_id: "subscriber3".to_string(),
+                type_id: TypeId::of::<()>(),
+            })
+            .await
+            .unwrap();
+
+        // Verify stats
+        let stats = event_bus.send(GetStats).await.unwrap();
+        assert_eq!(stats.subscription_count, 3);
+        assert_eq!(stats.event_type_count, 1);
+
+        // Publish an event
+        let event_id = generate_event_id();
+        let result = event_bus
+            .send(PublishEvent {
+                event_type: "shared_event",
+                event_id,
+                requires_ack: false,
+            })
+            .await
+            .unwrap();
+
+        assert_eq!(result.subscribers_notified, 3);
+    }
 }
